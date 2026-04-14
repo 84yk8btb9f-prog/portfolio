@@ -1,13 +1,7 @@
 import { FilingShell } from "@/components/filing-shell";
-import { Mail, X, ExternalLink } from "lucide-react";
+import { X, ExternalLink } from "lucide-react";
 
 const LINKS = [
-  {
-    label: "Email",
-    href: "mailto:nikolas.sapalidis@gmail.com",
-    value: "nikolas.sapalidis@gmail.com",
-    Icon: Mail,
-  },
   {
     label: "X / Twitter",
     href: "https://x.com/nikolassap",
