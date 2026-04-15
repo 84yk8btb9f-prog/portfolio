@@ -8,53 +8,73 @@ export default function MePage() {
       <div className="p-8 md:p-12 max-w-2xl">
         <div className="mb-10 pb-6 border-b border-[#EBEBEB]">
           <p className="text-[11px] font-mono uppercase tracking-widest text-[#86868b] mb-3">
-            About
+            Athens, Greece · 16
           </p>
           <h1 className="text-2xl font-sans font-semibold text-[#1d1d1f] leading-tight">
             Nikolas Sapalidis
           </h1>
         </div>
 
-        <div className="space-y-6 text-sm text-[#1d1d1f] leading-relaxed">
+        <div className="space-y-5 text-sm text-[#1d1d1f] leading-relaxed">
           <p>
-            Solo founder, indie hacker, developer, entrepreneur, creator.
-            I build products from zero — idea to shipped — and wear every hat
-            along the way. Based in Greece.
+            I started where most teenagers start: deep in the self-improvement
+            rabbit hole. That led to trading and crypto, then running a Google
+            Ads agency, then trying to sell digital products — and getting
+            nowhere. Didn&apos;t make a cent from any of it.
           </p>
 
           <p>
-            Right now I&apos;m heads-down on{" "}
-            <span className="font-medium">Helpmarq</span>, an AI-driven
-            customer engagement platform, and{" "}
-            <span className="font-medium">Padel AI Coach</span>, a video
-            analysis app for padel players. I also build websites and
-            web apps for clients through{" "}
+            Then I learned to code. Started building websites for businesses,
+            got my first paying client in February 2026, and realized this was
+            actually working. No templates — everything I build is custom, from
+            scratch, exactly what the client needs.
+          </p>
+
+          <p>
+            Alongside the client work, I started building products. First was{" "}
             <a
-              href="https://nikolassapa.vercel.app/"
+              href="https://helpmarq.com"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium underline underline-offset-2"
             >
-              my web dev practice
-            </a>
-            .
+              Helpmarq
+            </a>{" "}
+            — a feedback marketplace where you upload a project and get
+            structured, multi-perspective feedback from real users. It&apos;s
+            live. Now I&apos;m building{" "}
+            <a
+              href="https://www.trypadelup.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium underline underline-offset-2"
+            >
+              Padel Up
+            </a>{" "}
+            (an all-in-one iOS app for padel players),{" "}
+            <span className="font-medium">MarketMyApp</span> (AI-driven weekly
+            marketing actions for indie founders), and{" "}
+            <span className="font-medium">Creator Roast</span> (AI that
+            diagnoses exactly what&apos;s broken in your creator profile).
           </p>
 
           <p>
-            This site is my living notebook — projects I&apos;m building,
-            things I&apos;m writing, resources I keep coming back to, and a
-            timeline of what&apos;s actually happening.
+            Since April 2026 I&apos;ve been on Claude Code Max. It changed how
+            I work. I&apos;m shipping faster, building more things in parallel,
+            and actually enjoying the process. I write about it too — real
+            patterns, not hype.
           </p>
 
-          <div className="pt-4 border-t border-[#EBEBEB]">
+          <div className="pt-5 border-t border-[#EBEBEB]">
             <p className="text-[11px] font-mono uppercase tracking-widest text-[#86868b] mb-3">
               Currently
             </p>
-            <ul className="space-y-2 font-mono text-xs text-[#86868b]">
-              <li>→ Building Helpmarq — engagement intelligence for SaaS</li>
-              <li>→ Building Padel AI Coach — video analysis for padel</li>
-              <li>→ Shipping client web projects</li>
-              <li>→ Writing about what I learn building with AI</li>
+            <ul className="space-y-1.5 font-mono text-xs text-[#86868b]">
+              <li>→ Padel Up — waiting on App Store approval</li>
+              <li>→ MarketMyApp — building</li>
+              <li>→ Creator Roast — building</li>
+              <li>→ Client web work — websites, apps, custom systems</li>
+              <li>→ Writing about building with Claude Code</li>
             </ul>
           </div>
         </div>

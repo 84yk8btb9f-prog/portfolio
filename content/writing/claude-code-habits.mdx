@@ -1,21 +1,40 @@
 ---
 title: Claude Code habits that actually stick
 date: "2026-04-12"
-description: The workflows I've built over months of daily use.
+description: The workflows I've built from daily use. Real patterns, not hype.
 tags: [claude, productivity]
 ---
 
 ## The shift
 
-After six months of daily Claude Code use, the patterns that stuck weren't the clever ones — they were the boring, repeatable ones.
+I've been using Claude Code daily since March 2026. Upgraded to Max in April. After using it seriously — not just for autocomplete, but for architecture, debugging, content, the whole thing — here are the habits that actually stuck.
 
-## Habits
+## Six habits that matter
 
-1. **Plan first.** Use `/plan` before any task over 30 minutes.
-2. **Wrap up.** Never leave a session without `/wrap-up` — your future self will thank you.
-3. **Name sessions.** Snake-case session titles make memory search actually work.
-4. **Skills, not memory.** If you want a repeatable behavior, encode it as a skill. Claude's memory is unreliable; a skill file is not.
+**1. Plan before you touch code.**
+
+Any task that touches more than one file, or where the scope is unclear, starts with `/plan`. The plan agent explores the codebase, designs the approach, and writes a step-by-step implementation. This is not optional overhead — it's the difference between a two-hour task and a two-day mess.
+
+**2. Write CLAUDE.md rules the moment you discover them.**
+
+The second you notice Claude doing something wrong repeatedly — wrong pattern, wrong assumption, wrong tool — stop and write a rule. Don't batch them up for later. Later never comes, and meanwhile you're correcting the same mistake ten times.
+
+**3. Skills for repeatable behavior, not chat instructions.**
+
+If you want Claude to do something consistently across sessions, encode it as a skill file. Chat instructions evaporate. A skill file in `~/.claude/skills/` does not.
+
+**4. Name every session.**
+
+Every session gets a snake_case title at the start. `refactor_auth_flow`, `debug_supabase_rls`, `build_checkout_page`. This makes memory search actually work. Without names, sessions blur together and context is lost.
+
+**5. Match complexity to delegation level.**
+
+The mental model: one file is inline work, two to five files goes to a Sonnet agent via the Agent tool, cross-domain or architectural work goes to the orchestrator. Using the right level saves tokens and gets better results. Don't pull in the orchestrator for a one-file fix.
+
+**6. Call the advisor sparingly.**
+
+The advisor (Opus) is expensive. Only worth it for architecture decisions, security-sensitive design, or when you've tried twice and failed. Don't use it to rubber-stamp obvious decisions — that's just burning money for comfort.
 
 ## What doesn't work
 
-Vague instructions ("be careful", "always test"). Claude needs specific, actionable instructions. If it matters, write it in CLAUDE.md or a skill.
+Vague instructions. "Be careful with the database." "Always test your changes." Claude needs specific and actionable. If it matters, write the rule. If you can't write a specific rule for it, it's not a rule — it's a vibe, and vibes don't ship.

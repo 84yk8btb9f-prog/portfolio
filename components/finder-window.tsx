@@ -40,7 +40,7 @@ const ROOT: FolderNode = {
       kind: "Markdown Document",
       modified: "Apr 15, 2026",
       preview:
-        "Solo founder, indie hacker, developer, entrepreneur, creator.\n\nBased in Greece. I build products from zero to shipped — clean, fast, design-led web experiences.\n\nI've been building on the web for years across design, development, and product. I take on client work for companies that want something that actually looks and works great.",
+        "16. Athens, Greece.\n\nSolo founder, developer, builder. I make products from zero to shipped — and take on client web work for businesses that want something that actually looks and works great.\n\nNo templates. Everything custom. Always from scratch.",
     },
     {
       id: "services",
@@ -55,7 +55,7 @@ const ROOT: FolderNode = {
           kind: "Markdown Document",
           modified: "Apr 15, 2026",
           preview:
-            "Marketing sites, portfolios, and brand presences.\n\nClean, fast, SEO-optimized. Built to represent your brand well and load instantly.",
+            "Marketing sites, portfolios, and brand presences.\n\nClean, fast, SEO-optimized. Built to represent your brand well and load instantly. Fully custom — no templates.",
         },
         {
           id: "web-apps",
@@ -64,7 +64,7 @@ const ROOT: FolderNode = {
           kind: "Markdown Document",
           modified: "Apr 15, 2026",
           preview:
-            "Full-stack web applications.\n\nFrom MVPs to production-grade apps. Next.js, React, TypeScript, Supabase. Auth, databases, APIs — the whole stack.",
+            "Full-stack web applications.\n\nFrom MVPs to production-grade apps. Next.js, React, TypeScript, Supabase. Auth, databases, APIs, payments — the whole stack. Built to scale.",
         },
         {
           id: "landing-pages",
@@ -73,7 +73,16 @@ const ROOT: FolderNode = {
           kind: "Markdown Document",
           modified: "Apr 15, 2026",
           preview:
-            "High-converting, design-led landing pages.\n\nBuilt to rank and to convert. Clear hierarchy, strong copy structure, fast load times.",
+            "High-converting, design-led landing pages.\n\nBuilt to rank and to convert. Clear hierarchy, strong copy structure, fast load times. Designed to turn visitors into customers.",
+        },
+        {
+          id: "custom-systems",
+          name: "Custom Systems.md",
+          type: "file",
+          kind: "Markdown Document",
+          modified: "Apr 15, 2026",
+          preview:
+            "Bespoke backend systems and automations.\n\nSupabase databases, booking systems, custom ecommerce, internal tools, API integrations. If your business has a specific workflow that off-the-shelf software can't handle — this is where I come in.",
         },
       ],
     },
@@ -84,14 +93,74 @@ const ROOT: FolderNode = {
       modified: "Apr 15, 2026",
       children: [
         {
+          id: "nr40",
+          name: "nr40athens.com",
+          type: "file",
+          kind: "URL",
+          modified: "Mar 2026",
+          url: "https://nr40athens.com",
+          preview:
+            "Tattoo studio website — Athens, Greece.\n\nClean, dark, atmospheric site for a tattoo studio. Custom design, fast load, built to rank locally.",
+        },
+        {
+          id: "allcity",
+          name: "allcity-clothing",
+          type: "file",
+          kind: "URL",
+          modified: "Mar 2026",
+          url: "https://allcity-clothing.vercel.app/",
+          preview:
+            "Full custom ecommerce store — clothing brand.\n\nCompletely custom-built online store. Product pages, cart, checkout, inventory — everything. No Shopify template. Built from scratch with Next.js.",
+        },
+        {
+          id: "hustlemedia",
+          name: "hustle-media",
+          type: "file",
+          kind: "URL",
+          modified: "Feb 2026",
+          url: "https://hustle-media-rouge.vercel.app/",
+          preview:
+            "Agency website — SMMA.\n\nSharp, conversion-focused site for a social media marketing agency. Built to attract and convert leads.",
+        },
+        {
+          id: "tsvc",
+          name: "tsvcstudio.com",
+          type: "file",
+          kind: "URL",
+          modified: "Feb 2026",
+          url: "https://www.tsvcstudio.com/",
+          preview:
+            "Agency website — SMMA.\n\nProfessional digital agency presence. Clean layout, strong hierarchy, optimized to build trust quickly.",
+        },
+        {
+          id: "521",
+          name: "521.is",
+          type: "file",
+          kind: "URL",
+          modified: "Apr 2026",
+          url: "https://521.is/",
+          preview:
+            "Course landing page — geo-free location course.\n\nLanding page for a course teaching location independence. Clear value prop, direct copy, built to convert.",
+        },
+        {
+          id: "storm",
+          name: "storm-piercing.com",
+          type: "file",
+          kind: "URL",
+          modified: "Apr 2026",
+          url: "https://storm-piercing.com/en",
+          preview:
+            "Custom ecommerce + booking — piercing studio.\n\nFull custom store for a piercing studio: jewelry ecom, appointment booking, product pages. Everything built from scratch.",
+        },
+        {
           id: "portfolio",
           name: "nikolassapa.vercel.app",
           type: "file",
           kind: "URL",
-          modified: "Feb 1, 2026",
+          modified: "Apr 2026",
           url: "https://nikolassapa.vercel.app",
           preview:
-            "My web development portfolio.\n\nShowcasing my work, services, and how to get in touch.",
+            "Web dev portfolio — demos, rates, and contact.\n\nFull showcase of web development work, service details, and pricing. The place to go if you want to work together.",
         },
       ],
     },
@@ -102,7 +171,7 @@ const ROOT: FolderNode = {
       kind: "Markdown Document",
       modified: "Apr 15, 2026",
       preview:
-        "Next.js · React · TypeScript · Tailwind CSS\nSupabase · Vercel · Figma\n\nBuilt for speed, reliability, and a great developer experience. I ship on Vercel and design in Figma.",
+        "Next.js · React · TypeScript · Tailwind CSS\nSupabase · Vercel · Figma · React Native\n\nFast, reliable, modern. I pick boring tech that ships — and then push it to its limits. Everything goes on Vercel. Everything is designed in Figma first.",
     },
   ],
 };

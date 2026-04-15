@@ -15,33 +15,63 @@ tags: [claude, guide]
 | `/commit` | Structured commits with co-author tag |
 | `/resume` | Start of session — loads recent context |
 
+## CLAUDE.md patterns that work
+
+Rules need to be specific. Bad:
+
+```
+Always be careful with the database.
+```
+
+Good:
+
+```
+Before running any DELETE query, confirm the WHERE clause with the user.
+Never use `DROP TABLE` without explicit approval.
+```
+
+Organize by domain. Keep it short — Claude reads the whole file every session. If it's getting long, split into `rules/` subdirectories and `@import` them.
+
 ## Hook patterns
 
-Hooks are shell commands that run on Claude Code events. Set them in `settings.json`.
+Hooks run shell commands on Claude Code events. Set them in `settings.json`.
 
-- **PreToolUse** — validate before risky commands (e.g., block `rm -rf`)
-- **PostToolUse** — auto-save session state after file edits
-- **Stop** — run `/wrap-up` automatically when Claude finishes
+```json
+{
+  "hooks": {
+    "PostToolUse": [{
+      "matcher": "Write|Edit",
+      "hooks": [{ "type": "command", "command": "echo 'File edited' >> ~/claude-log.txt" }]
+    }],
+    "Stop": [{
+      "hooks": [{ "type": "command", "command": "claude /wrap-up" }]
+    }]
+  }
+}
+```
+
+Most useful hooks:
+- **PreToolUse** — validate before risky Bash commands. Block `rm -rf`, `DROP TABLE`, force pushes.
+- **PostToolUse** — auto-save, auto-format, trigger tests after edits.
+- **Stop** — auto wrap-up every session. Never lose context again.
 
 ## Agent routing
 
-Match complexity to delegation level:
+| Task size | Approach |
+|---|---|
+| 1 file, clear scope | Inline — no agent |
+| 2–5 files, defined task | `Agent` tool with `sonnet` subagent |
+| Cross-domain, architectural | `orchestrator` — delegates to specialists |
 
-- **1 file** → inline (no agent)
-- **2–5 files** → `sonnet` agent via `Agent` tool
-- **Cross-domain** → `orchestrator` (delegates to specialists)
+The orchestrator is expensive. Don't call it for simple tasks. Don't do complex tasks inline without it.
 
 ## Memory system
 
-Session memory is stored in Pinecone via the `mcp__memory-system__` tools. Key operations:
+Session memory lives in Pinecone via the `mcp__memory-system__` tools:
 
-- `ingest_file` — index a file into memory
+- `ingest_file` — index a file or document into memory
 - `search_pinecone` — semantic search across all past sessions
-- `search_wiki` — search structured knowledge base
+- `search_wiki` — search the structured knowledge base
+- `update_wiki_page` — write persistent facts to the wiki
 
-## CLAUDE.md tips
-
-Rules in `CLAUDE.md` are injected into every session. Keep them:
-- Specific and actionable (not "be careful")
-- Organized by domain (agents, MCP, design, etc.)
-- Short — Claude reads the whole file every session
+The wiki is for things that are always true. Pinecone is for things that happened. Know the difference.

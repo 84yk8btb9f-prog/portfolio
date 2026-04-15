@@ -1,4 +1,4 @@
-import { X, ExternalLink } from "lucide-react";
+import { X, AtSign, Link, ExternalLink } from "lucide-react";
 
 const LINKS = [
   {
@@ -8,9 +8,21 @@ const LINKS = [
     Icon: X,
   },
   {
+    label: "Instagram",
+    href: "https://www.instagram.com/nikolas.sapa/",
+    value: "@nikolas.sapa",
+    Icon: AtSign,
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/nik-sapa/",
+    value: "nik-sapa",
+    Icon: Link,
+  },
+  {
     label: "GitHub",
     href: "https://github.com/84yk8btb9f-prog",
-    value: "github.com/84yk8btb9f-prog",
+    value: "84yk8btb9f-prog",
     Icon: ExternalLink,
   },
 ];
