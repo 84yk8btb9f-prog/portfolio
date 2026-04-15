@@ -4,14 +4,14 @@ import { X, ExternalLink } from "lucide-react";
 const LINKS = [
   {
     label: "X / Twitter",
-    href: "https://x.com/nikolassap",
-    value: "@nikolassap",
+    href: "https://x.com/nikolassapa",
+    value: "@nikolassapa",
     Icon: X,
   },
   {
     label: "GitHub",
-    href: "https://github.com/nikolassap",
-    value: "github.com/nikolassap",
+    href: "https://github.com/84yk8btb9f-prog",
+    value: "github.com/84yk8btb9f-prog",
     Icon: ExternalLink,
   },
 ];

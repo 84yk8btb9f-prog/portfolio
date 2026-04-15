@@ -19,23 +19,33 @@ export default function MePage() {
 
         <div className="space-y-6 text-sm text-shell-ink leading-relaxed">
           <p>
-            I build products at the intersection of AI and real-world problems.
-            Based in Greece, working on things that matter — customer intelligence,
-            sports performance, and tooling for the way people actually work today.
+            Solo founder, indie hacker, developer, entrepreneur, creator.
+            I build products from zero — idea to shipped — and wear every hat
+            along the way. Based in Greece.
           </p>
 
           <p>
-            Currently heads-down on{" "}
-            <span className="font-medium">Helpmarq</span> — an engagement
-            intelligence platform — and{" "}
-            <span className="font-medium">Padel AI Coach</span>, a video-based
-            coaching app for padel players.
+            Right now I&apos;m heads-down on{" "}
+            <span className="font-medium">Helpmarq</span>, an AI-driven
+            customer engagement platform, and{" "}
+            <span className="font-medium">Padel AI Coach</span>, a video
+            analysis app for padel players. I also build websites and
+            web apps for clients through{" "}
+            <a
+              href="https://nikolassapa.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium underline underline-offset-2"
+            >
+              my web dev practice
+            </a>
+            .
           </p>
 
           <p>
-            I write about building with AI, lessons from shipping products, and
-            the occasional padel match breakdown. This site is where I keep
-            everything: projects, notes, guides, and status updates.
+            This site is my living notebook — projects I&apos;m building,
+            things I&apos;m writing, resources I keep coming back to, and a
+            timeline of what&apos;s actually happening.
           </p>
 
           <div className="pt-4 border-t border-shell-border">
@@ -43,10 +53,10 @@ export default function MePage() {
               Currently
             </p>
             <ul className="space-y-2 font-mono text-xs text-shell-muted">
-              <li>→ Building Helpmarq (engagement intelligence)</li>
-              <li>→ Building Padel AI Coach (video analysis)</li>
-              <li>→ Exploring agent-native product patterns</li>
-              <li>→ Writing about what I learn along the way</li>
+              <li>→ Building Helpmarq — engagement intelligence for SaaS</li>
+              <li>→ Building Padel AI Coach — video analysis for padel</li>
+              <li>→ Shipping client web projects</li>
+              <li>→ Writing about what I learn building with AI</li>
             </ul>
           </div>
         </div>
