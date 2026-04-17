@@ -1,266 +1,104 @@
 ---
 title: "03 — The rules/ Directory"
 date: "2026-04-16"
-description: "Modular rule files in ~/.claude/rules/ — when to split, when to @import."
+description: "Why a rules/ folder beats one long CLAUDE.md — the load-on-demand pattern and naming conventions."
 order: 3
 group: "Configuration"
 groupSlug: "02-configuration"
 tags: ["claude-code", "guide"]
 ---
 
-> When `CLAUDE.md` gets long, split it. The `rules/` directory holds small domain-specific files — database rules, git rules, UI rules — that you `@import` where needed. Main file stays scannable; context loads only when it matters.
+> When `CLAUDE.md` gets long, split it. A `rules/` directory holds small, domain-specific files that load only when relevant. The main file stays scannable; context enters when it matters.
 
 ---
 
-Modular rule files, loaded on-demand or referenced by the global `CLAUDE.md`. Each file governs a specific domain.
+## The Problem with One Big File
+
+A single `CLAUDE.md` that covers agents, design rules, database conventions, git workflow, and MCP references all at once has two failure modes:
+
+1. Claude front-loads all of it into context every session, whether or not it's relevant.
+2. You stop updating it because it's too tangled to edit confidently.
+
+The fix is to split by domain and load on demand.
 
 ---
 
-## 1. `agents.md` — Specialist Agent Reference
+## The Pattern
 
-### Specialist Agents
+```
+~/.claude/
+├── CLAUDE.md          ← short, pointers only
+└── rules/
+    ├── agents.md      ← when and how to spawn specialist agents
+    ├── design-dna.md  ← visual and animation standards
+    ├── mcp.md         ← which MCP servers exist and what they're for
+    └── database.md    ← schema conventions, migration rules
+```
 
-| Agent | Trigger | Notes |
-|---|---|---|
-| `orchestrator` | Complex multi-step, cross-domain tasks | Delegates to others, enforces quality gates. Use first for big tasks. |
-| `frontend` | UI components, pages, layouts, styling, React/Next.js/Vue | Include relevant component file paths |
-| `backend` | API routes, server logic, middleware, auth, data processing | Include route file paths and framework |
-| `database` | Schema design, migrations, query optimization | Include current schema/migration files |
-| `build` | TypeScript errors, lint failures, build pipeline failures | Run after implementation agents |
-| `reviewer` | Read-only code review — security, correctness, types | Always run after implementation before deploy |
-| `debugger` | Diagnosing bugs, test failures, unexpected behavior | Diagnoses root cause + applies minimal fix |
-| `git` | Branching, commits, PRs, merge conflicts, history cleanup | Use for all non-trivial git operations |
-| `vercel` | Vercel deploys, build logs, domain config, deploy failures | |
-| `railway` | Railway services, variables, deploy logs | |
-| `fly-io` | Fly.io machines, scaling, deploy logs | |
-| `netlify` | Netlify builds, functions, config, deploy failures | |
-| `cloudflare` | Cloudflare Workers, Pages, KV, D1, R2 | |
-| `Explore` | Codebase exploration — find files, patterns, understand structure | Specify thoroughness: quick/medium/very thorough |
-| `Plan` | Designing implementation strategy before touching code | Returns step-by-step plans with trade-offs |
-| `general-purpose` | Open-ended research, multi-step searches, external lookups | Last resort when no specialist fits |
-| `claude-code-guide` | Questions about Claude Code CLI, hooks, MCP, API, SDK | Check for running instance before spawning new one |
-
----
-
-## 2. `design-dna.md` — Frontend Design Rules
-
-Overrides defaults from any design skill, including `frontend-design`.
-
-### Aesthetic
-Clean, polished, modern SaaS. Apple-level attention to detail. Liquid glass / glassmorphism where appropriate. Every pixel intentional.
-
-### Bans
-- No emojis — use icons (Lucide, Heroicons, or project's icon set)
-- No gradient backgrounds (especially blue/purple washes)
-- No generic "vibecoded" aesthetic (floating cards on gradient backgrounds)
-- No Inter/Roboto/Arial as primary fonts
-
-### Animations
-- Right animation for the context — not blanket fade-in
-- Physics-based easing (spring, ease-out-expo) over linear/ease
-- Staggered reveals, meaningful hover states, smooth layout transitions
-- One well-crafted transition beats ten generic ones
-
-### Visual
-- Generous whitespace, clear hierarchy, strong typography
-- Subtle depth (light shadows, blur, translucency) not heavy 3D
-- Restrained color: neutral dominant + 1-2 accents
-- Micro-details: consistent border-radius, icon sizing, spacing rhythm
-
-### Self-Improving
-On design feedback, update `~/.claude/projects/-Users-<you>/memory/design_preferences.md`. Check it at session start for accumulated preferences.
-
----
-
-## 3. `mcp.md` — MCP Reference
-
-### Data & Content
-
-| MCP | Prefix | Use for |
-|---|---|---|
-| **Notion** | `mcp__notion__` | Knowledge Base, Agent Task Board, any Notion page/db. Primary task log. |
-| **GitHub** | `mcp__github__` | Issues, PRs, file contents, branches, commits, reviews |
-| **Gmail** | `mcp__claude_ai_Gmail__` | Read/search email, create drafts. Never send without explicit approval. |
-| **Google Calendar** | `mcp__claude_ai_Google_Calendar__` | List/create/update events, find free time, respond to invites |
-| **Obsidian** | `mcp__obsidian__` | Read/write/search Obsidian vault notes |
-
-### Code & Docs
-
-| MCP | Prefix | Use for |
-|---|---|---|
-| **context7** | `mcp__context7__` | Up-to-date library docs. Always: `resolve-library-id` → `query-docs`. |
-| **Next.js DevTools** | `mcp__next-devtools__` | Next.js docs, component upgrades, browser eval |
-| **Angular** | `mcp__angular__` | Angular CLI, docs, best practices. Use `list_projects` first. |
-
-### Design & Visual
-
-| MCP | Prefix | Use for |
-|---|---|---|
-| **Figma** | `mcp__figma__` | Get design data, download images from Figma files |
-| **Canva** | `mcp__Canva__` | Create/edit/export Canva designs, manage folders and brand kits |
-| **Miro** | `mcp__miro__` | Create/read diagrams, tables, docs on Miro boards |
-
-### Automation & Scraping
-
-| MCP | Prefix | Use for |
-|---|---|---|
-| **Apify** | `mcp__apify__` | Web scraping, data extraction. Sequence: `search-actors` → `fetch-actor-details` → `call-actor` |
-| **Playwright** | `mcp__playwright__` | Browser automation, E2E testing, screenshots, form filling |
-| **Peekaboo** | `mcp__peekaboo__` | Screenshot/screen capture and visual analysis of current screen |
-
-### Memory & Knowledge Graph
-
-| MCP | Prefix | Use for |
-|---|---|---|
-| **Memory (graph)** | `mcp__memory__` | Persistent knowledge graph: entities, relations, observations |
-| **claude-mem search** | `mcp__plugin_claude-mem_mcp-search__` | Search session context database; use `smart_search` for general queries |
-
----
-
-## 4. `obsidian.md` — Obsidian Vault Rules
-
-**Vault path:** `~/MyVault/`
-
-Use lean-ctx tools directly on the vault — not `mcp__obsidian__`.
-
-### Tool Routing
-
-| Task | Tool |
-|---|---|
-| Search vault by keyword | `ctx_search(pattern, "~/MyVault")` |
-| Read a specific note | `ctx_read("~/MyVault/path/to/note.md")` |
-| Map vault structure | `ctx_tree("~/MyVault", depth)` |
-| List area or project files | `ctx_tree("~/MyVault/01-Areas", 2)` |
-
-lean-ctx reads the same markdown files faster and with compression.
-
-### Context Loading Order
-
-Before starting any project work:
-
-1. Check if the project's `CLAUDE.md` has `@path` imports — if so, context is already loaded.
-2. Otherwise, `ctx_search` for the project name to find relevant notes.
-3. Check `01-Areas/_context/` for canonical business docs.
-4. Read `02-Projects/[project]/index.md` for current status.
-
-**Never ask the user for something that may already be in the vault — search first.**
-
-### When to Search the Vault
-
-- Starting any project work → read `02-Projects/[project]/index.md`
-- Writing any content → load `01-Areas/_context/brand-voice.md`
-- Building for a product → load `01-Areas/_context/icp.md`
-- User references a meeting, decision, or past note → search vault before asking
-- Anything about brand, audience, positioning → check `_context/` first
-
-### `_context/` — Canonical Business Docs
-
-`01-Areas/_context/` is the single source of truth for all business context. Load it before content, copy, or marketing work.
-
-| File | Contents |
-|---|---|
-| `brand-voice.md` | Tone, personality, writing style, words to use/avoid |
-| `icp.md` | Ideal customer profile — who we're building for |
-| `positioning.md` | Market position, competitors, differentiators |
-| `products.md` | Product summaries, pricing, key features |
-
-### @-Import Pattern for Project CLAUDE.md Files
-
-Add to any project's `CLAUDE.md` to auto-load context at session start:
+`CLAUDE.md` references these files but doesn't inline them:
 
 ```markdown
-@~/MyVault/01-Areas/_context/brand-voice.md
-@~/MyVault/01-Areas/_context/icp.md
-@~/MyVault/02-Projects/[project]/index.md
+Full agent reference (load on demand): `~/.claude/rules/agents.md`
+Design rules: `~/.claude/rules/design-dna.md`
 ```
 
-### Vault Structure Reference
-
-```
-MyVault/
-├── 01-Areas/
-│   ├── _context/          ← canonical business docs (brand voice, ICP, positioning)
-│   ├── marketing-growth.md
-│   ├── dev-infrastructure.md
-│   ├── products.md
-│   └── content-writing.md
-├── 02-Projects/
-│   ├── Claude Sessions/   ← session handoffs (read for context, don't edit)
-│   ├── my-app/
-│   ├── client-project/
-│   └── [project]/index.md + BACKLOG.md
-├── 03-Resources/
-├── 04-Archives/
-├── 05-Daily-Logs/         ← daily notes (search for patterns and history)
-└── CLAUDE.md              ← vault-level identity and working memory
-```
+Claude reads the pointer. It pulls the file when the task requires it — not before.
 
 ---
 
-## 5. `ollama-delegate.md` — Ollama Delegation
+## The @-Import Trigger
 
-Delegate bulk/repetitive code generation to Ollama automatically. No user prompt needed.
+For context that should load automatically at session start, use `@`-imports at the top of `CLAUDE.md`:
 
-### When to Delegate
-- Boilerplate (components, CRUD, type definitions)
-- Unit tests / test stubs
-- Simple utility functions
-- Documentation / comments
-
-### When NOT to Delegate
-- Architecture, complex debugging, multi-file refactors
-- Anything requiring skills, MCPs, or deep codebase understanding
-- Security-sensitive code
-
-### Delegation Script (Groq → GCP → Local priority)
-
-```bash
-# Priority: Groq API (free, fast) → GCP Ollama → Local Ollama
-source ~/.config/groq/.env 2>/dev/null
-
-# 1. Try Groq first (free tier: 1K req/day, best models)
-if [ -n "$GROQ_API_KEY" ]; then
-  RESULT=$(curl -s https://api.groq.com/openai/v1/chat/completions \
-    -H "Authorization: Bearer $GROQ_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"model\": \"openai/gpt-oss-120b\",
-      \"messages\": [{\"role\": \"user\", \"content\": $(echo "$PROMPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}],
-      \"temperature\": 0.3,
-      \"max_tokens\": 4096
-    }" 2>/dev/null | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['choices'][0]['message']['content'])" 2>/dev/null)
-  if [ -n "$RESULT" ]; then echo "$RESULT"; exit 0; fi
-fi
-
-# 2. Try GCP Ollama
-GCP_IP=$(gcp-llm ip 2>/dev/null)
-if curl -sf "http://${GCP_IP}:11434/api/tags" &>/dev/null; then
-  ENDPOINT="http://${GCP_IP}:11434"
-# 3. Fall back to local Ollama
-elif curl -sf "http://localhost:11434/api/tags" &>/dev/null; then
-  ENDPOINT="http://localhost:11434"
-fi
-
-if [ -n "$ENDPOINT" ]; then
-  curl -s ${ENDPOINT}/api/chat -d '{
-    "model":"<best-available>",
-    "messages":[{"role":"user","content":"<specific prompt>"}],
-    "stream":false,"think":false,
-    "options":{"temperature":0.3,"num_predict":4096}
-  }' | python3 -c "import sys,json; print(json.load(sys.stdin).get('message',{}).get('content','ERROR'))"
-fi
+```markdown
+@~/.claude/rules/design-dna.md
+@~/projects/my-app/context.md
 ```
 
-### Model Priority by Tier
+These load immediately. Use `@`-imports sparingly — only for rules that apply to nearly every session. Everything else stays as a prose pointer.
 
-| Tier | Models (priority order) | Notes |
-|---|---|---|
-| **Groq (free, primary)** | `openai/gpt-oss-120b` > `moonshotai/kimi-k2-instruct` > `qwen/qwen3-32b` | Best coding / best agentic / fallback. Free tier: 1K req/day, ~10K tok/min |
-| **GCP Ollama (fallback)** | `qwen3.5:27b` > `gemma4:31b` | Spot instance, ~$0.28/hr |
-| **Local Ollama (last resort)** | `qwen3:8b` > `qwen3:4b` | |
+---
 
-### Management
+## Naming Conventions That Work
 
-- **Groq API key:** `~/.config/groq/.env` (never commit)
-- **GCP:** `gcp-llm start` / `gcp-llm stop` / `gcp-llm status` ($300 credits)
-- **Auto-start:** When Groq is rate-limited and GCP is down, run `gcp-llm start` without asking.
+Name files after the domain they govern, not after their format. A few examples:
+
+| File | What it covers |
+|------|----------------|
+| `agents.md` | Which specialist agents exist, when to use each |
+| `design-dna.md` | Visual standards — typography, color, animation rules |
+| `mcp.md` | Available MCP servers, prefixes, usage sequencing |
+| `git.md` | Commit conventions, branch naming, PR rules |
+| `database.md` | Schema patterns, migration workflow, query rules |
+
+The filenames become part of the mental model. When Claude sees "design feedback → load `design-dna.md`" in context, the mapping is obvious.
+
+---
+
+## What Goes in Each File
+
+Keep each rule file narrow. A good rule file:
+
+- Covers one domain
+- Fits in a single scroll
+- Reads as instructions to Claude, not documentation for humans
+
+If you find yourself adding a "for context, here's some background" section, trim it. Rule files are directives, not explanations.
+
+---
+
+## Project-Level Rules
+
+The same pattern works at the project level. A `.claude/rules/` folder inside a repo can override or extend global rules for that project:
+
+```
+my-app/
+└── .claude/
+    ├── CLAUDE.md       ← project-specific pointers
+    └── rules/
+        └── api.md      ← route conventions specific to this codebase
+```
+
+Global rules apply by default. Project rules supplement or override where they conflict. Local machine rules (in `settings.local.json` or a local `CLAUDE.md`) sit on top of both.
+
+The mental model: global → project → local, narrowing scope at each layer. Rules files follow the same layering as `settings.json`.

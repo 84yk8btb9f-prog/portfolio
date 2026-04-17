@@ -8,284 +8,75 @@ groupSlug: "05-memory-context"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** Claude Code sessions don't remember each other by default. Memory fixes that. Two layers: a wiki for facts that are always true, and a vector DB for things that happened. Set up right, you stop re-explaining your project to every new session.
+> Claude Code sessions don't remember each other by default. Memory fixes that. The goal: stop re-explaining your project to every new session.
 
 ---
 
-## Layer 1: Custom Memory System (`~/memory-system/`)
+## The problem
 
-A self-healing, four-component system built in Python. Runs as background daemons, exposed to Claude Code via MCP.
-
-```
-memory-system/
-├── CLAUDE.md              # Identity file — read at session start
-├── schema.md              # Wiki page conventions (structure, frontmatter)
-├── mcp/
-│   └── memory_server.py   # FastMCP server (8 tools)
-├── obsidian/
-│   ├── wiki/              # Claude-maintained knowledge wiki (markdown pages)
-│   │   └── index.mmd      # Master index: path | 12-word summary | confidence | date
-│   ├── log.md             # Append-only session log
-│   ├── raw/               # Drop zone for auto-ingestion
-│   └── log-archive/       # Archived logs (overflow protection)
-├── pinecone/
-│   ├── ingest.py          # Chunk → embed (multilingual-e5-large) → upsert
-│   ├── query.py           # Semantic search wrapper
-│   └── config.json        # Index name, chunk size (512/50 overlap), watched paths
-├── daemon/
-│   ├── watcher.py         # File system watcher (watchdog) — auto-ingests on create/modify
-│   ├── scheduler.py       # APScheduler cron — health check Sun 00:00, lint daily 03:00
-│   ├── health_check.py    # 7-point health audit (calls Claude Haiku for contradictions)
-│   └── self_heal.py       # Auto-fixes safe issues
-└── tools/                 # CLI wrappers for each MCP tool
-```
-
-**Storage backends:**
-- **Obsidian wiki** — active, evolving knowledge; markdown files; full-text searchable
-- **Pinecone vector DB** — long-term archive; semantic search; free tier (2GB); index: `memory-system`; model: `multilingual-e5-large`; chunk size: 512 tokens, 50 overlap
-
-**Cost:** < $0.10/month (Haiku API calls ~$0.05, Pinecone free, embeddings free via Pinecone integrated inference)
-
-### 8 MCP Tools
-
-All tools delegate to Python scripts via `subprocess` through a shared `_run_script()` helper.
-
-| Tool | Signature | What it does |
-|---|---|---|
-| `search_wiki` | `(query: str) → str` | Full-text search across all wiki markdown pages; returns ranked results with context |
-| `search_pinecone` | `(query: str, top_k: int = 5) → str` | Semantic vector search against Pinecone index; returns top matches with source + text |
-| `ingest_url` | `(url: str) → str` | Scrapes URL via trafilatura, saves to `raw/`, embeds in Pinecone, suggests wiki update; timeout 180s |
-| `ingest_file` | `(path: str) → str` | Ingests a local file (PDF, DOCX, text) into Pinecone |
-| `update_wiki_page` | `(page_path: str, content: str) → str` | Creates or updates a wiki page at `obsidian/wiki/{page_path}`; auto-updates `index.mmd` with 12-word summary |
-| `run_health_check` | `() → str` | Runs 7-point health audit (orphans, dead links, stale content, contradictions via Haiku, index drift, Pinecone sync, log overflow); timeout 300s |
-| `get_log` | `(last_n: int = 20) → str` | Returns last N lines from `obsidian/log.md` |
-| `list_wiki_pages` | `() → str` | Returns entire `index.mmd` — all wiki pages with summaries, confidence levels, dates |
-
-### Vault Integration
-
-`config.json` watches these paths for auto-ingestion:
-```
-~/my-vault/01-Areas/
-~/my-vault/02-Projects/my-app/
-~/my-vault/03-Resources/
-~/memory-system/obsidian/raw/
-```
-
-> The exact paths are yours to configure. Point them at whatever vault areas and project directories you want auto-ingested.
-
-Excluded: `Claude Sessions`, `.obsidian`
-
-`watcher.py` (watchdog) monitors these paths live. Any file created or modified triggers automatic Pinecone ingestion. Deletions remove the entry from `processed.json`.
-
-The wiki (`obsidian/wiki/`) mirrors the vault's `01-Areas/` structure, with pages for `content-writing.md`, `dev-infrastructure.md`, `marketing-growth.md`, `products.md`, and a `projects/` subdirectory.
-
-### Auto-Capture Pipeline
-
-```
-New file dropped in watched path
-    → watcher.py detects (watchdog inotify/FSEvents)
-    → pinecone/ingest.py: chunk → embed → upsert + update processed.json
-    → wiki suggestion surfaced to Claude on next ingest_url call
-
-Scheduled (APScheduler):
-    Sunday 00:00  → health_check.py (7-point audit + Claude Haiku contradiction check)
-    Daily 03:00   → lint_wiki.py (no API calls — fast structural validation)
-
-Session end (manual):
-    Claude appends one-line summary to obsidian/log.md
-    Format: [ISO datetime] | [what was ingested or changed] | [pages updated]
-    When log.md > 500 lines → archived to log-archive/ and reset
-
-Wiki rules (enforced in CLAUDE.md):
-    - Never delete content — use ~~strikethrough~~ for deprecated items
-    - Flag contradictions with ⚠️ CONFLICT:
-    - Pages over 800 words → split and link
-    - Every page summary in index.mmd ≤ 12 words
-```
-
-### Setup
-
-```bash
-# 1. Install (Python 3.11+ required)
-cd ~/memory-system
-bash install.sh
-# Creates .venv, installs requirements.txt, verifies Pinecone + Anthropic API keys,
-# scaffolds wiki/ raw/ log-archive/ directories, creates index.mmd and log.md
-
-# 2. Create .env with secrets
-echo "PINECONE_API_KEY=..." > .env
-echo "ANTHROPIC_API_KEY=..." >> .env
-
-# 3. Start daemons
-bash start.sh
-# Launches watcher.py (PID saved to daemon/.watcher.pid)
-# Launches scheduler.py (PID saved to daemon/.scheduler.pid)
-# MCP server runs on-demand via Claude Code (not a persistent process)
-
-# 4. Add MCP to ~/.claude/mcp.json
-{
-  "mcpServers": {
-    "memory-system": {
-      "command": "~/memory-system/.venv/bin/python",
-      "args": ["~/memory-system/mcp/memory_server.py"],
-      "cwd": "~/memory-system"
-    }
-  }
-}
-```
-
-**Dependencies** (`requirements.txt`): `anthropic`, `pinecone>=5.0.0`, `watchdog`, `apscheduler`, `trafilatura`, `tqdm`, `mcp[cli]`, `plyer`, `python-dotenv`, `tiktoken`, `pypdf2`, `python-docx`, `rich`
-
-### Self-Healing
-
-| Check | Auto-fixed? |
-|---|---|
-| Orphan pages (not in index.mmd) | No — flagged |
-| Dead `[[wiki-links]]` | No — reported |
-| Stale content (90+ days unedited) | Yes — marks `confidence: low` |
-| Contradictions (Haiku compares linked pages) | No — human review via `self_heal.py --resolve N` |
-| Index drift (dead entries in index.mmd) | Yes — removed |
-| Pinecone sync (processed.json vs actual index) | Yes — re-ingested |
-| Log overflow (log.md > 500 lines) | Yes — archived |
+Every session starts cold. Claude doesn't know what you decided yesterday, why you structured the code that way, or which approach you already tried and abandoned. You either paste context manually at the start of every session — or you build something that does it for you.
 
 ---
 
-## Layer 2: Persistent Learned Feedback (`~/.claude/projects/-Users-<you>/memory/`)
+## Two kinds of memory
 
-Flat directory of markdown feedback files with YAML frontmatter, indexed by `MEMORY.md`. Loaded at session start for global behavioral rules.
+**Facts that are always true** — your project's architecture, conventions, decisions made, things to never do. These don't change often. They belong in a file Claude reads at session start.
 
-### Index (`MEMORY.md`)
+**Things that happened** — session logs, past conversations, code changes over time. These are queryable. You want semantic search over them, not a flat file.
 
-```markdown
-- Always push to GitHub after commits → feedback_git_push.md
-- Never use Co-Authored-By in commits → feedback_no_co_authored_by.md
-- Auto-delegate to Ollama → feedback_ollama_delegation.md
-- Design Preferences → design_preferences.md
-```
-
-### Feedback Entries
-
-#### `feedback_git_push.md` — Always push after commit
-- **Why:** User explicitly stated "always push changes to github."
-- **How to apply:** After any `git commit`, immediately run `git push` without asking for confirmation. No exceptions.
-
-#### `feedback_no_co_authored_by.md` — No Co-Authored-By trailers
-- **Why:** Vercel (Hobby plan) checks every commit author for project access. When `Co-Authored-By: Claude ...` appears, Vercel treats it as an unknown author and **blocks the deployment entirely**.
-- **How to apply:** Omit `Co-Authored-By` lines from all commit messages in this project. This **overrides the global CLAUDE.md default** of including it.
-
-#### `feedback_ollama_delegation.md` — Auto-delegate to Ollama
-- **Why:** User wants to save Claude tokens and zero interaction overhead for delegation decisions.
-- **How to apply:** When generating boilerplate, tests, simple functions, or docs — silently curl Ollama (Groq → GCP → local fallback), review output, write the file. User should barely notice. See `ollama-delegate.md` for exact commands and model priority.
-
-#### `design_preferences.md` — Learned visual design taste
-- **Why:** Accumulated from feedback given in past sessions; evolves over time.
-- **How to apply:** Read before any frontend work. Current state: clean/polished modern SaaS, Apple-inspired liquid glass / glassmorphism, translucent layers, every detail intentional. Updated via the `design-dna-inject.sh` hook whenever a frontend file is written.
+Most setups combine both.
 
 ---
 
-## Layer 3: claude-mem Plugin (`mcp__plugin_claude-mem_mcp-search__`)
+## Three approaches
 
-Session-context database that auto-indexes past Claude Code conversation history. Provided by the `claude-mem@thedotmack` plugin.
+### Option A: Vault + structured CLAUDE.md
 
-### 6 Tools
+The simplest option. Keep a `CLAUDE.md` in each project with conventions, constraints, and key decisions. Use `@path` imports to pull in shared context (brand voice, architecture docs, ICP).
 
-The plugin enforces a **3-step retrieval workflow** to minimize token cost:
+Good fit if: your context is relatively stable and you're okay updating it manually.
 
-```
-Step 1: search(query)      → Index with IDs (~50-100 tokens/result)
-Step 2: timeline(anchor=ID) → Context around interesting results
-Step 3: get_observations([IDs]) → Full details ONLY for filtered IDs
-
-NEVER fetch full details without filtering first. 10x token savings.
-```
-
-| Tool | Purpose |
-|---|---|
-| `search` | Step 1 — keyword/semantic search across indexed sessions; returns compact index with observation IDs. Params: `query`, `limit`, `project`, `type`, `obs_type`, `dateStart`, `dateEnd`, `offset`, `orderBy` |
-| `timeline` | Step 2 — temporal context around an anchor observation; surfaces what happened before/after. Params: `anchor` (ID) OR `query`, `depth_before`, `depth_after`, `project` |
-| `get_observations` | Step 3 — fetch full content for filtered observation IDs only. Params: `ids` (array, required), `orderBy`, `limit`, `project` |
-| `smart_search` | AST-based codebase search using tree-sitter — finds symbols, functions, classes across files. Returns folded structural views. Params: `query`, `path`, `file_pattern`, `max_results` |
-| `smart_outline` | Structural outline of a single file — all symbols with signatures, bodies folded. Use before `smart_unfold` |
-| `smart_unfold` | Expand a specific symbol from a file — returns full source of that function/class only |
-
-### Usage Patterns
-
-- **Prior session recall:** `search("my-app auth")` → `timeline(anchor=ID)` → `get_observations([ID1, ID2])`
-- **Code archaeology:** `smart_search("handleSave", path="~/my-app")` → `smart_unfold(file, "handleSave")`
-- **Scoped by project:** all search tools accept `project` param to filter to a specific codebase
-
-### Token Economics
-
-- `search` — ~50–100 tokens per result (IDs + summaries)
-- `timeline` — ~200–400 tokens of surrounding context
-- `get_observations` — ~500–2,000 tokens per full observation
-
-**Without filtering:** 10 observations = ~15,000 tokens
-**With the 3-step funnel:** ~1,500 tokens — 10x savings.
-
-### Auto-Indexing
-
-`claude-mem` automatically indexes Claude Code session JSONL files from `~/.claude/projects/`. No manual step required. Past sessions become searchable within seconds of the session ending.
+Limitation: no search. If you have 50 past sessions worth of decisions, you can't query them.
 
 ---
 
-## Layer 4: Session Handoffs
+### Option B: Obsidian vault + lean-ctx
 
-### Storage
+Keep a vault of markdown notes — one per project, one per decision, session logs. Use `ctx_search` to pull relevant notes into context at session start.
 
-| Location | Format |
-|---|---|
-| `~/my-vault/sessions/` (or your configured path) | Named `{date}-{topic-slug}.md` |
-| `~/.claude/session-handoffs/` | Fallback — vault directory is the active store |
+This gives you searchable, human-readable memory with no infrastructure. The tradeoff is that search is keyword-based, not semantic.
 
-### `auto-session-save.sh`
-
-**Location:** `~/.claude/scripts/auto-session-save.sh`
-**Trigger:** Claude Code `Stop` hook
-
-**How it works:**
-1. Receives session JSON on stdin, extracts `session_id`
-2. Finds the session JSONL at `~/.claude/projects/**/{session_id}.jsonl`
-3. Parses JSONL with Python to extract:
-   - **User goals** — first 8 unique user messages > 10 chars (non-XML)
-   - **Files changed** — all `Edit` and `Write` tool calls' `file_path` values
-   - **Key decisions** — first meaningful line of each assistant text block > 30 chars
-4. Derives a topic slug from the first 5 words of the first user message
-5. Writes `~/my-vault/sessions/{date}-{topic-slug}.md` (path configured in the script)
-6. Deduplicates — won't overwrite if `session_id` already exists in a file
-
-**Output format:**
-```markdown
-# Session: {Topic Words} — {YYYY-MM-DD HH:MM}
-**Session ID:** `{uuid}`
-
-## User Goals
-- {first 8 user requests, truncated to 200 chars}
-
-## Files Changed
-- `{absolute path}`
-
-## Key Decisions / Actions
-- {first 6 assistant decision lines}
-
-## Concepts Applied / Learned
-_(fill in at /wrap-up)_
+Good fit if: you already use Obsidian or similar, and your notes are well-named.
 
 ---
-_Auto-generated by auto-session-save.sh on Stop hook._
-```
 
-**Hook registration** (in `~/.claude/settings.json`):
-```json
-"Stop": [{
-  "hooks": [{
-    "type": "command",
-    "command": "osascript -e 'display notification ...'"
-  }]
-}]
-```
-> Note: The `auto-session-save.sh` script is present at `~/.claude/scripts/` and is invoked separately from the macOS notification hook — both fire on Stop. The notification hook is currently the only one wired in `settings.json`; `auto-session-save.sh` may be registered in a project-level settings file or invoked via the `/wrap-up` skill.
+### Option C: Embeddings + vector search (mem0, Pinecone, pgvector)
 
-### Handoff File Usage
+Store session summaries, decisions, and code snippets as embeddings. Query by semantic similarity at the start of each session — "what do I know about the auth system?" returns relevant past context even if the wording differs.
 
-Session files accumulate in your configured vault sessions directory and form a searchable project history. The vault rules direct Claude to search this directory via `ctx_search` when referencing past decisions. The `/resume` skill loads recent handoffs to reconstruct context at session start.
+Tools worth knowing:
+- **[mem0](https://mem0.ai)** — managed memory layer with an API, designed for agents
+- **Pinecone / pgvector** — if you want to roll your own
+- **A FastMCP server** — expose search as a tool Claude can call mid-session
+
+Good fit if: you have months of session history, complex projects, or multiple agents that need shared memory.
+
+---
+
+## What to pin at session start
+
+Whatever approach you pick, the pattern is the same: load the right context before Claude does any work.
+
+Useful things to always load:
+- Project conventions and constraints
+- Current architecture decisions
+- Things that didn't work (saves re-trying them)
+- Any external context Claude can't infer from code (team conventions, business rules)
+
+A `SessionStart` hook is the cleanest way to inject this automatically — see [09 — Hooks & Scripts](/resources/claude-code-guide/09-hooks-and-scripts).
+
+---
+
+## Start simple
+
+Don't build a pipeline before you know you need one. Start with a `CLAUDE.md` and a session log you append to manually. When you find yourself re-explaining the same thing three sessions in a row, that's the signal to automate it.

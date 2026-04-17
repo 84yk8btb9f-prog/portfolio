@@ -8,49 +8,13 @@ groupSlug: "01-fundamentals"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** The checklist for setting up Claude Code from scratch on a new machine. Everything you need, in order. Copy-paste ready.
+> Get Claude Code running, point it at a project, and add what's actually useful Day 1. That's it.
 
 ---
 
-## 1. Prerequisites
+## 1. Install Claude Code
 
-### macOS & Xcode Command Line Tools
-
-```bash
-xcode-select --install
-```
-
-### Homebrew
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-### Core system dependencies
-
-```bash
-brew install node git gh jq ollama flyctl python@3.12
-```
-
-> `jq`, `bc`, and `osascript` are used by hooks and gcp-llm. `bc` ships with macOS. `osascript` is built-in.
-
-### npm (global, latest)
-
-```bash
-npm install -g npm@latest
-```
-
-### uv (Python package manager — required for claude-memory-compiler)
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
----
-
-## 2. Claude Code
-
-Claude Code is installed as a global npm package.
+You need Node 18+ and an Anthropic API key.
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -60,479 +24,89 @@ Verify:
 
 ```bash
 claude --version
-# Expected: <version> (Claude Code)
-which claude
-# Expected: ~/.local/bin/claude
 ```
 
-Authenticate:
+Set your key (or export it in your shell profile):
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+---
+
+## 2. Start a session
+
+Inside any project directory:
 
 ```bash
 claude
-# Follow the OAuth login prompt in your browser
 ```
+
+Claude reads the directory structure on first load. No extra config required to start.
 
 ---
 
-## 3. lean-ctx Install + Hook Wiring
+## 3. Add a CLAUDE.md
 
-lean-ctx is a context-engineering runtime that sits between Claude Code and file/shell operations. It compresses outputs, caches reads, and provides dozens of MCP tools.
+Drop a `CLAUDE.md` at your project root. Claude reads it at session start — use it to give context Claude can't infer from code alone.
 
-### Install
-
-```bash
-npm install -g lean-ctx-bin
-```
-
-Verify:
-
-```bash
-lean-ctx --version
-# Expected: current version
-which lean-ctx
-# Expected: /opt/homebrew/bin/lean-ctx
-```
-
-### Wire lean-ctx into Claude Code
-
-One-command setup:
-
-```bash
-lean-ctx setup
-```
-
-This installs shell aliases and wires the MCP server into your agent config. To configure manually for Claude Code specifically:
-
-```bash
-lean-ctx init --agent claude-code
-```
-
-### Hook Wiring (`settings.json`)
-
-lean-ctx hooks intercept native Read and Bash tool calls and route them through lean-ctx compression. Add to `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash|bash",
-        "hooks": [{ "type": "command", "command": "lean-ctx hook rewrite" }]
-      },
-      {
-        "matcher": "Read|read|ReadFile|read_file|View|view|Grep|grep|Search|search|ListFiles|list_files|ListDirectory|list_directory",
-        "hooks": [{ "type": "command", "command": "lean-ctx hook redirect" }]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [{ "type": "command", "command": "osascript -e 'display notification \"Claude has finished.\" with title \"Claude Code\" sound name \"Glass\"'" }]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [{ "type": "command", "command": "osascript -e 'display notification \"Claude needs your attention.\" with title \"Claude Code\" sound name \"Ping\"'" }]
-      }
-    ],
-    "StopFailure": [
-      {
-        "hooks": [{ "type": "command", "command": "osascript -e 'display notification \"Claude stopped with an error.\" with title \"Claude Code\" sound name \"Basso\"'" }]
-      }
-    ]
-  }
-}
-```
-
-### Make hook scripts executable
-
-```bash
-chmod +x ~/.claude/hooks/*.sh
-```
-
----
-
-## 4. Plugins — Marketplaces + Install
-
-Claude Code plugins are installed via the CLI. Marketplaces must be added before their plugins can be installed.
-
-### Step 1 — Add plugin marketplaces
-
-```bash
-claude plugins marketplace add github:sequenzia/agent-alchemy
-claude plugins marketplace add github:thedotmack/claude-mem
-claude plugins marketplace add github:context-engineering-marketplace/context-engineering
-# Add any other third-party marketplaces you use here
-```
-
-The following marketplaces are built-in and do not need to be added:
-- `claude-plugins-official` (default)
-
-### Step 2 — Install plugins
-
-```bash
-# Official marketplace plugins
-claude plugins install frontend-design@claude-plugins-official
-claude plugins install superpowers@claude-plugins-official
-claude plugins install code-review@claude-plugins-official
-claude plugins install hookify@claude-plugins-official
-claude plugins install context7@claude-plugins-official
-claude plugins install code-simplifier@claude-plugins-official
-claude plugins install telegram@claude-plugins-official
-claude plugins install commit-commands@claude-plugins-official
-claude plugins install pr-review-toolkit@claude-plugins-official
-claude plugins install feature-dev@claude-plugins-official
-claude plugins install figma@claude-plugins-official
-claude plugins install slack@claude-plugins-official
-claude plugins install vercel@claude-plugins-official
-claude plugins install swift-lsp@claude-plugins-official
-
-# Third-party marketplace plugins (install only what you've added above)
-claude plugins install claude-mem@thedotmack
-claude plugins install agent-alchemy-claude-tools@sequenzia
-claude plugins install agent-alchemy-core-tools@sequenzia
-claude plugins install agent-alchemy-dev-tools@sequenzia
-claude plugins install agent-alchemy-git-tools@sequenzia
-claude plugins install agent-alchemy-sdd-tools@sequenzia
-claude plugins install agent-alchemy-tdd-tools@sequenzia
-claude plugins install context-engineering@context-engineering-marketplace
-# claude plugins install <your-skill>@<your-marketplace>  ← add your own skills here
-```
-
-> **Install order matters:** marketplaces first, then plugins. Installing a plugin from an unregistered marketplace will fail.
-
----
-
-## 5. Custom MCPs — memory-system Python Server
-
-The memory-system provides persistent knowledge management via Pinecone vector search and a local wiki. It runs as a Python MCP server.
-
-### Clone the repo
-
-```bash
-# Point this at your own memory-system repo if you have one
-git clone <your-memory-system-repo> ~/memory-system
-cd ~/memory-system
-```
-
-### Configure secrets
-
-Create `~/memory-system/.env`:
-
-```bash
-PINECONE_API_KEY=<your-pinecone-api-key>
-ANTHROPIC_API_KEY=<your-anthropic-api-key>
-PINECONE_INDEX_NAME=memory-system
-EMBEDDING_MODEL=multilingual-e5-large
-WIKI_DOMAIN=projects
-```
-
-> Get your Pinecone key from [app.pinecone.io](https://app.pinecone.io). Free tier (2 GB) is sufficient.
-
-### Install and verify
-
-```bash
-bash ~/memory-system/install.sh
-```
-
-This creates a Python 3.11+ venv at `~/memory-system/.venv`, installs dependencies, and runs connectivity checks.
-
-### Start the daemons
-
-```bash
-bash ~/memory-system/start.sh
-```
-
-This starts the file watcher (auto-ingests new files) and the scheduler (health checks + lint on cron).
-
-### Register the MCP server with Claude Code
-
-Create `~/.claude/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "memory-system": {
-      "command": "~/memory-system/.venv/bin/python",
-      "args": ["~/memory-system/mcp/memory_server.py"],
-      "cwd": "~/memory-system"
-    }
-  }
-}
-```
-
-Enable it in `~/.claude/settings.local.json`:
-
-```json
-{
-  "enabledMcpjsonServers": ["memory", "notion", "figma", "miro"]
-}
-```
-
-Restart Claude Code after adding.
-
----
-
-## 6. Ollama Chain — 3-Tier Local LLM Setup
-
-Boilerplate and repetitive code generation is automatically delegated to a 3-tier LLM chain to save Claude tokens (per `~/.claude/rules/ollama-delegate.md`).
-
-### Tier 1 — Local Ollama (always-on fallback)
-
-```bash
-brew install ollama
-ollama serve &   # or: brew services start ollama
-
-# Pull the models used in this setup
-ollama pull qwen3:8b
-ollama pull qwen3:4b
-```
-
-Verify:
-
-```bash
-ollama list
-# Should show qwen3:4b and qwen3:8b
-```
-
-### Tier 2 — Groq API (free tier, primary)
-
-Sign up at [console.groq.com](https://console.groq.com) and get a free API key (1,000 req/day).
-
-```bash
-mkdir -p ~/.config/groq
-echo 'export GROQ_API_KEY="gsk_<your-key>"' > ~/.config/groq/.env
-```
-
-> Free tier models: `openai/gpt-oss-120b` (best coding), `moonshotai/kimi-k2-instruct` (best agentic), `qwen/qwen3-32b`.
-
-### Tier 3 — GCP Ollama (spot instance, $0.28/hr)
-
-The `gcp-llm` CLI manages a GCP spot VM running Ollama. It is a personal helper script installed at `~/.local/bin/gcp-llm` — not a public package. Write your own or adapt the pattern below.
-
-Setup requires:
-1. Google Cloud SDK (`gcloud` CLI) installed and authenticated
-2. A GCP project with billing enabled ($300 free credits available)
-3. The `gcp-llm` script configured with your project/zone
-
-```bash
-# Install gcloud CLI
-brew install --cask google-cloud-sdk
-gcloud auth login
-gcloud config set project <your-project-id>
-
-# Copy the gcp-llm script
-cp <path-to-gcp-llm-script> ~/.local/bin/gcp-llm
-chmod +x ~/.local/bin/gcp-llm
-```
-
-Usage:
-
-```bash
-gcp-llm start    # Start spot VM (~30s)
-gcp-llm status   # Check IP + status
-gcp-llm stop     # Stop (stop billing)
-```
-
-> **Fragile step:** The `gcp-llm` script has hardcoded GCP project, zone, and instance configuration. Edit those values before use. Run `cat $(which gcp-llm)` to see all config variables.
-
----
-
-## 7. Obsidian Vault Setup + claude-memory-compiler
-
-### Obsidian vault
-
-The vault lives at `~/MyVault/`. Create it:
-
-```bash
-mkdir -p ~/MyVault/{01-Areas/_context,02-Projects,03-Resources,04-Archives,05-Daily-Logs}
-```
-
-Install [Obsidian](https://obsidian.md) (download from website or `brew install --cask obsidian`) and open `~/MyVault/` as a vault.
-
-### claude-memory-compiler
-
-The memory compiler ingests articles and AI conversations into a personal knowledge base (Karpathy-style — structured index, no RAG at personal scale).
-
-```bash
-git clone <your-claude-memory-compiler-repo> ~/claude-memory-compiler
-cd ~/claude-memory-compiler
-uv sync   # installs dependencies via uv/pyproject.toml
-```
-
-Key dependencies (from `pyproject.toml`):
-- `claude-agent-sdk>=0.1.29`
-- `python-dotenv>=1.0.0`
-- `tzdata>=2024.1`
-- Python 3.12+
-
-### Symlink daily logs to vault
-
-```bash
-rmdir ~/MyVault/05-Daily-Logs   # remove placeholder if exists
-ln -s ~/claude-memory-compiler/daily ~/MyVault/05-Daily-Logs
-```
-
-### Usage
-
-```bash
-cd ~/claude-memory-compiler
-
-uv run python scripts/ingest.py https://example.com/article   # ingest URL
-uv run python scripts/ingest.py ~/Downloads/notes.md          # ingest file
-uv run python scripts/compile.py                               # compile daily logs
-uv run python scripts/query.py "your question"                 # query knowledge base
-uv run python scripts/lint.py                                  # health check
-```
-
-### Wire vault rules into Claude Code
-
-Add to `~/.claude/CLAUDE.md` or your project's `CLAUDE.md`:
+Minimal template:
 
 ```markdown
-## Obsidian Vault
-Vault: `~/MyVault/` — access via lean-ctx tools directly on vault path.
+# Project
+
+[One sentence: what this project is and what it does.]
+
+## Stack
+
+- [Language / framework]
+- [Key libraries]
+- [Database or API dependencies]
+
+## Conventions
+
+- [Naming conventions, folder structure notes]
+- [Anything Claude should not change without asking]
+
+## Commands
+
+- `npm run dev` — start dev server
+- `npm run build` — production build
+- `npm test` — run tests
 ```
+
+Keep it short. Update it when the project changes. A stale CLAUDE.md is worse than none.
 
 ---
 
-## 8. MCP OAuth Pairings
+## 4. Connect context7 (recommended MCP)
 
-Several MCPs require OAuth authentication. Trigger on first use or pre-pair with:
-
-```bash
-claude mcp auth <server-name>
-```
-
-### MCPs requiring OAuth
-
-| MCP | Auth method | Notes |
-|-----|-------------|-------|
-| `claude.ai Gmail` | Google OAuth | Grants read/draft access; never sends without approval |
-| `claude.ai Google Calendar` | Google OAuth | Same Google OAuth flow as Gmail |
-| `claude.ai Google Drive` | Google OAuth | Same Google OAuth flow |
-| Figma | Figma OAuth | Via `claude plugins` OAuth flow |
-| Slack | Slack OAuth | Via `claude plugins` OAuth flow |
-| Vercel | Vercel OAuth | Via `claude plugins` OAuth flow |
-| Notion | Notion integration token | Create at notion.so/my-integrations |
-
-### Pairing commands
+context7 gives Claude live documentation for any library instead of relying on training data. Worth adding early — it prevents hallucinated API calls.
 
 ```bash
-# Google services (one OAuth flow covers Gmail + Calendar + Drive)
-claude mcp auth "claude.ai Gmail"
-
-# Plugin-based OAuth (triggers in-browser flow)
-claude plugins auth figma
-claude plugins auth slack
-claude plugins auth vercel
-
-# Notion — manual token
-# 1. Go to https://notion.so/my-integrations
-# 2. Create an integration, copy the secret
-# 3. Add to MCP config or environment
+claude mcp add context7 -- npx -y @upstash/context7-mcp
 ```
 
-> **Note:** Telegram auth is handled via `telegram configure` skill, which walks through bot token setup.
+Once added, Claude will use it when you ask about library-specific behaviour.
 
 ---
 
-## 9. Verification
+## 5. Explore the plugin marketplace
 
-Run these checks to confirm each component is working.
-
-### Claude Code
+The Claude Code plugin marketplace has agents, skills, commands, and hooks for specific workflows. Browse it when you hit a repeating task that feels like something others have solved.
 
 ```bash
-claude --version   # Should print version + "Claude Code"
+claude plugins list
 ```
 
-### lean-ctx
-
-```bash
-lean-ctx --version             # Should print version
-lean-ctx gain                  # Shows token savings dashboard
-```
-
-### Plugins
-
-```bash
-# Open Claude Code and check available skills
-claude
-# Type /skills or run a plugin skill: /superpowers
-```
-
-### memory-system MCP
-
-```bash
-cd ~/memory-system
-uv run python tools/lint_wiki.py     # structural health check
-# Or within Claude Code: the memory-system tools will appear in MCP list
-```
-
-### Ollama (local)
-
-```bash
-ollama list                          # Shows installed models
-ollama run qwen3:8b "hello"          # Quick sanity check
-```
-
-### Groq API
-
-```bash
-source ~/.config/groq/.env
-curl -s https://api.groq.com/openai/v1/models \
-  -H "Authorization: Bearer $GROQ_API_KEY" | jq '.data[0].id'
-```
-
-### GCP Ollama
-
-```bash
-gcp-llm status    # Should show RUNNING or TERMINATED
-gcp-llm start     # Start if needed, wait ~30s
-curl http://$(gcp-llm ip):11434/api/tags   # Lists models on GCP VM
-```
-
-### Obsidian vault symlink
-
-```bash
-ls -la ~/MyVault/05-Daily-Logs   # Should show symlink → ~/claude-memory-compiler/daily
-```
-
-### Hooks
-
-```bash
-# Trigger a claude session and observe macOS notifications on stop
-claude -p "say hello"
-# Should hear "Glass" sound + notification on completion
-```
+Don't install everything up front. Add plugins when you have a specific need — it keeps the system legible.
 
 ---
 
-## Fragile / Manual Steps
+## What next
 
-| Step | Why it's fragile | Mitigation |
-|------|------------------|------------|
-| `gcp-llm` script | Hardcoded GCP project/zone/instance vars | Edit the script variables before first use |
-| Groq API key | Free tier rate limits (1K req/day) | Monitor usage; `gcp-llm start` auto-triggers when Groq is exhausted |
-| memory-system `.env` | Pinecone key must be set manually | Keep `.env` in 1Password or equivalent |
-| Obsidian vault symlink | Must be created manually after clone | Part of setup script above |
-| Plugin marketplace order | Plugins fail if marketplace not registered first | Always run marketplace adds before plugin installs |
-| MCP OAuth expiry | Google/Figma/Slack tokens expire | Re-run `claude mcp auth` when prompted |
-| Python version | memory-system requires 3.11+, compiler requires 3.12+ | `brew install python@3.12` covers both |
+- Set up your `~/.claude/CLAUDE.md` for global preferences that apply across all projects
+- Read the agents section to understand how Claude delegates work
+- When a workflow gets repetitive, look at custom commands
 
----
-
-## Quick Reference — Install Commands
-
-| Tool | Install method |
-|------|----------------|
-| claude | `npm install -g @anthropic-ai/claude-code` (always latest) |
-| lean-ctx | `npm install -g lean-ctx-bin` (always latest) |
-| node | `brew install node` |
-| python | `brew install python@3.12` |
-| ollama | `brew install ollama` |
-| gh | `brew install gh` |
-| vercel | `npm install -g vercel` (always latest) |
-| fly | `brew install flyctl` |
-| uv | curl install script (see astral.sh/uv) |
-| gcp-llm | personal helper — `~/.local/bin/gcp-llm` |
+That's the minimum viable setup. Build from here.

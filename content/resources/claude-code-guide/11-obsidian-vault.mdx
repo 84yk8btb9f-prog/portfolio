@@ -1,7 +1,7 @@
 ---
 title: "11 — Obsidian Vault"
 date: "2026-04-16"
-description: "How to structure an Obsidian vault as shared memory for Claude Code — PARA layout, _context/ canon docs, @-imports, and lean-ctx routing."
+description: "How to structure an Obsidian vault as shared memory for Claude Code — PARA layout, _context/ canon docs, @-imports, and tool routing."
 order: 11
 group: "Memory & Context"
 groupSlug: "05-memory-context"
@@ -114,22 +114,24 @@ tags: [tag1, tag2]
 ---
 ```
 
-Consistent frontmatter makes `ctx_search` reliable — you can filter by `type: context` or `status: active` without opening every file.
+Consistent frontmatter makes pattern search reliable — you can filter by `type: context` or `status: active` without opening every file.
 
 ---
 
 ## Tool routing
 
-The vault is just markdown files on disk. You don't need the Obsidian MCP to read them — lean-ctx reads the same files faster, with session caching and token compression.
+The vault is just markdown files on disk. You don't need the Obsidian MCP to read them — whatever context layer you run (a caching MCP, a direct file reader, or plain shell commands) reads the same files. The Obsidian MCP adds a round-trip through the server; direct file access is faster.
 
-| Task | Use |
+Route accordingly:
+
+| Task | Approach |
 |---|---|
-| Search vault by keyword | `ctx_search(pattern, "~/MyVault")` |
-| Read a specific note | `ctx_read("~/MyVault/path/to/note.md")` |
-| Map vault structure | `ctx_tree("~/MyVault", depth)` |
-| List area or project files | `ctx_tree("~/MyVault/01-Areas", 2)` |
+| Search vault by keyword | Pattern search on the vault directory |
+| Read a specific note | Direct file read |
+| Map vault structure | Directory tree (depth 2–3) |
+| List area or project files | Tree on the target subdirectory |
 
-Never use `mcp__obsidian__` — it adds a round-trip through the MCP server for work lean-ctx handles directly. A re-read via `ctx_read` costs ~13 tokens from the session cache.
+Keep the tool consistent. Mixing the Obsidian MCP with direct reads on the same files can produce stale results from the MCP's own cache.
 
 ---
 
@@ -138,7 +140,7 @@ Never use `mcp__obsidian__` — it adds a round-trip through the MCP server for 
 When starting work on any project:
 
 1. Check the project's `CLAUDE.md` for `@path` imports — if present, context is already loaded
-2. If not, `ctx_search` the project name to locate relevant notes
+2. If not, search the vault by project name to locate relevant notes
 3. Load `01-Areas/_context/` canonical docs for content or positioning work
 4. Read `02-Projects/[project]/index.md` for current status
 

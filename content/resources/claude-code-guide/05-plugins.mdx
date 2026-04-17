@@ -1,211 +1,84 @@
 ---
 title: "05 — Plugins"
 date: "2026-04-16"
-description: "Official plugins, what they give you, and the ones actually worth enabling."
+description: "What Claude Code plugins are, how they differ from MCPs, and when to use them."
 order: 5
 group: "Extensions"
 groupSlug: "03-extensions"
 tags: ["claude-code", "guide"]
 ---
 
-> Plugins bundle agents, skills, commands, and hooks around a theme — PR review, spec-driven dev, TDD, testing. Install one and get a whole workflow out of the box. A handful earn their weight; most need trial-and-error to find what fits.
+> A plugin bundles agents, skills, slash commands, and hooks around a theme — PR review, spec-driven dev, TDD. Install one and get a whole workflow out of the box instead of wiring each piece yourself.
 
 ---
 
-All plugins are installed at **user scope** (`~/.claude/plugins/cache/`).
+## Plugins vs MCPs
+
+These two extension points get confused a lot. The distinction:
+
+- **MCPs** expose tools Claude can call — they're about connecting Claude to external services or data.
+- **Plugins** extend Claude Code's own behavior — new commands, new agents, new ways of working inside the tool itself.
+
+An MCP gives Claude access to your GitHub repo. A plugin gives Claude a `/pr-review` command that knows how to structure a code review and which agents to call. They're complementary, not alternatives.
 
 ---
 
-## Marketplace: `claude-plugins-official`
-**Source repo:** `anthropics/claude-plugins-official`
+## The marketplace
 
-### superpowers
-- **Version:** 5.0.7
-- **Provides — Skills (13):**
-  - `brainstorming` — structured ideation for new products/features
-  - `writing-plans` — multi-file implementation planning
-  - `executing-plans` / `execute-plan` (command) — step-by-step plan execution
-  - `using-superpowers` — meta-skill: how to orchestrate all superpowers skills
-  - `systematic-debugging` — root-cause debugging with defense-in-depth
-  - `test-driven-development` — TDD methodology with anti-patterns guide
-  - `verification-before-completion` — validate multi-file implementations before declaring done
-  - `subagent-driven-development` — spec → reviewer → implementer pipeline
-  - `dispatching-parallel-agents` — fan-out parallel agent orchestration
-  - `using-git-worktrees` — parallel dev via git worktrees
-  - `requesting-code-review` / `receiving-code-review` — structured PR review flow
-  - `finishing-a-development-branch` — branch cleanup and merge prep
-  - `writing-skills` — author new Claude Code skills
-- **Provides — Commands:** `/brainstorm`, `/write-plan`, `/execute-plan`
-- **Provides — Agents:** `code-reviewer`
-- **Note:** Most critical plugin in the setup. Gates brainstorm/plan/debug/verify workflows via CLAUDE.md rules.
+Plugins live in the official registry: `anthropics/claude-plugins-official`. Browse and search via the CLI:
 
-### frontend-design
-- **Provides — Skills:** `frontend-design` — full UI design-to-code pipeline
+```bash
+claude plugins search          # browse available plugins
+claude plugins info superpowers  # details on a specific plugin
+```
 
-### code-review
-- **Provides — Commands:** `/code-review`
+Install, update, and list:
 
-### hookify
-- **Provides — Skills:** `writing-rules`
-- **Provides — Commands:** `/hookify`, `/hookify:help`, `/hookify:list`, `/hookify:configure`
-- **Provides — Agents:** `conversation-analyzer`
-- **Provides — Hooks:** PreToolUse, PostToolUse, Stop, UserPromptSubmit hook infrastructure (Python)
-- **Note:** Hook management system — write and enforce custom behavioral rules.
+```bash
+claude install superpowers     # install
+claude update superpowers      # update to latest
+claude plugins list            # see what's installed
+```
 
-### context7
-- **Status:** DISABLED (`"context7@claude-plugins-official": false` in settings.json)
-- **Note:** Replaced by the native `mcp__context7__` MCP server.
-
-### code-simplifier
-- **Version:** 1.0.0
-- **Provides — Commands:** simplify/refactor code
-
-### commit-commands
-- **Provides — Commands:** `/commit`, `/commit-push-pr`, `/clean_gone`
-
-### pr-review-toolkit
-- **Provides — Commands:** `/review-pr`
-- **Provides — Agents:** `code-reviewer`, `code-simplifier`, `comment-analyzer`, `pr-test-analyzer`, `silent-failure-hunter`, `type-design-analyzer`
-
-### feature-dev
-- **Provides — Commands:** `/feature-dev`
-- **Provides — Agents:** `code-architect`, `code-explorer`, `code-reviewer`
-
-### telegram
-- **Version:** 0.0.6
-- **Source:** `anthropics/claude-plugins-official` (external_plugins/telegram)
-- **Provides — MCP:** `mcp__plugin_telegram_telegram__*` — Telegram bot integration
-- **Provides — Commands:** `/telegram:configure`, `/telegram:access`
-
-### swift-lsp
-- **Version:** 1.0.0
-- **Provides:** Swift Language Server Protocol integration
-
-### figma
-- **Version:** 2.1.7
-- **Provides — Skills (7):**
-  - `figma-use` — query and read Figma designs
-  - `figma-implement-design` — convert Figma frames to code
-  - `figma-generate-design` — create new Figma designs
-  - `figma-generate-library` — build component libraries from Figma
-  - `figma-code-connect` — link code components to Figma
-  - `figma-create-design-system-rules` — extract design tokens/rules
-  - `figma-create-new-file` — create new Figma files
-- **Provides — MCP:** `mcp__plugin_figma_figma__*` (auth-gated)
-- **Provides — Steering docs:** code-connect, design-system-rules, implement-design guidance
-
-### slack
-- **Version:** 1.0.0
-- **Provides — Skills:** `slack-messaging`, `slack-search`
-- **Provides — Commands:** `/standup`, `/find-discussions`, `/summarize-channel`, `/channel-digest`, `/draft-announcement`
-- **Provides — MCP:** `mcp__plugin_slack_slack__*` (auth-gated)
-
-### vercel
-- **Version:** 0.40.0
-- **Provides — Skills (25):**
-  - Core: `nextjs`, `react-best-practices`, `vercel-cli`, `vercel-agent`, `vercel-functions`, `vercel-storage`, `vercel-sandbox`
-  - Deploy: `deployments-cicd`, `workflow`, `verification`, `bootstrap`
-  - Framework: `ai-sdk`, `ai-gateway`, `chat-sdk`, `turbopack`, `next-forge`, `next-cache-components`, `next-upgrade`, `routing-middleware`, `runtime-cache`
-  - Auth & Config: `auth`, `env-vars`, `shadcn`, `marketplace`, `knowledge-update`
-- **Provides — Commands:** `/vercel:deploy`, `/vercel:env`, `/vercel:status`, `/vercel:bootstrap`, `/vercel:marketplace`
-- **Provides — Agents:** `ai-architect`, `deployment-expert`, `performance-optimizer`
-- **Provides — MCP:** `mcp__plugin_vercel_vercel__*` (auth-gated)
-- **Provides — Hooks:** intelligent skill injection based on prompt patterns
+All plugins install at user scope — `~/.claude/plugins/` — so they're available across all your projects.
 
 ---
 
-## Marketplace: `sequenzia`
-**Source repo:** `sequenzia/agent-alchemy`
+## What plugins actually give you
 
-### agent-alchemy-claude-tools
-- **Version:** 0.2.5
-- **Provides — Skills:** `claude-code-tasks`, `claude-code-teams` — multi-agent task management and team orchestration
+A plugin can contain any combination of:
 
-### agent-alchemy-core-tools
-- **Version:** 0.2.3
-- **Provides — Skills:** `codebase-analysis`, `deep-analysis`, `language-patterns`, `project-conventions`, `technical-diagrams`
-- **Provides — Agents:** `code-architect`, `code-explorer`, `code-synthesizer`
-- **Provides — Hooks:** `auto-approve-da-session.sh`
-
-### agent-alchemy-dev-tools
-- **Version:** 0.3.4
-- **Provides — Skills:** `feature-dev`, `bug-killer`, `code-quality`, `architecture-patterns`, `changelog-format`, `docs-manager`, `document-changes`, `project-learnings`, `release-python-package`
-- **Provides — Agents:** `bug-investigator`, `changelog-manager`, `code-reviewer`, `docs-writer`
-
-### agent-alchemy-git-tools
-- **Version:** 0.1.0
-- **Provides — Skills:** `git-commit`
-
-### agent-alchemy-sdd-tools
-- **Version:** 0.2.11
-- **Provides — Skills (5):** `create-spec`, `analyze-spec`, `create-tasks`, `run-tasks`, `execute-tasks`
-- **Provides — Agents:** `codebase-explorer`, `context-manager`, `researcher`, `spec-analyzer`, `task-executor`, `wave-lead`
-- **Note:** Full Spec-Driven Development (SDD) pipeline.
-
-### agent-alchemy-tdd-tools
-- **Version:** 0.2.1
-- **Provides — Skills (5):** `tdd-cycle`, `generate-tests`, `create-tdd-tasks`, `execute-tdd-tasks`, `analyze-coverage`
-- **Provides — Agents:** `tdd-executor`, `test-reviewer`, `test-writer`
+- **Skills** — reusable workflows Claude knows how to run (e.g. "systematic-debugging", "writing-plans")
+- **Agents** — specialist sub-agents Claude can delegate to (e.g. a dedicated PR reviewer)
+- **Slash commands** — `/commands` that trigger specific workflows
+- **Hooks** — code that runs automatically on file writes, session start, or commit
+- **Bundled MCPs** — the plugin installs and wires an MCP server for you
 
 ---
 
-## Marketplace: `thedotmack`
-**Source repo:** `thedotmack/claude-mem`
+## Three plugins worth knowing about
 
-### claude-mem
-- **Version:** 10.5.5
-- **Provides — Skills (4):** `mem-search`, `make-plan`, `do`, `smart-explore`
-- **Provides — MCP:** `mcp__plugin_claude-mem_mcp-search__*` — persistent memory search across sessions
-- **Provides — Modes (35):** localized code modes (ar, bn, chill, cs, de, es, fr, ja, ko, zh, etc.) + `email-investigation`, `law-study`
-- **Provides — Hooks:** session lifecycle hooks (session-start, session-end, etc.)
-- **Note:** Session memory system using SQLite + tree-sitter for code-aware memory.
+These aren't recommendations for your setup — they're concrete examples of what a plugin looks like in practice.
 
----
+**superpowers**
+Anthropic's flagship plugin. Adds skills for planning, debugging, TDD, brainstorming, and spec-driven development. Each skill is a structured prompt sequence with clear inputs and outputs. Install it to see how a well-designed plugin feels.
 
-## Marketplace: `context-engineering-marketplace`
-**Source repo:** `muratcankoylan/agent-skills-for-context-engineering`
+**claude-mem**
+Adds session memory — stores context from previous sessions so Claude can pick up where it left off. Useful if you find yourself re-explaining your project setup every session. Exposes a `mem-search` skill and a `/resume` command.
 
-### context-engineering
-- **Provides — Skills (13):**
-  - `context-fundamentals`, `context-compression`, `context-optimization`, `context-degradation`
-  - `memory-systems`, `filesystem-context`
-  - `evaluation`, `advanced-evaluation`
-  - `multi-agent-patterns`, `hosted-agents`
-  - `tool-design`, `bdi-mental-states`
-  - `project-development`
+**lean-ctx**
+Context engineering layer. Replaces standard file reads with cached, compressed equivalents. Saves tokens on large codebases. Lower-level than the others — good to understand if you care about context budget.
 
 ---
 
-## Marketplace: `anthropic-agent-skills`
-**Source repo:** `anthropics/skills`
+## Install one vs build your own
 
-### pdf
-- **Enabled:** true (no cache entry — loaded from marketplace directory)
-- **Provides — Skills:** `pdf` — extract, fill, and annotate PDF forms; convert PDFs to images.
-- **Provides — Scripts:** `fill_pdf_form_with_annotations.py`, `convert_pdf_to_images.py`, `extract_form_structure.py`, and others.
+Install from the marketplace when the workflow it bundles matches how you already want to work. If a plugin's opinionated flow doesn't fit, you're better off building a lightweight version yourself — a skill is just a markdown file in `~/.claude/skills/`, a hook is a script in `~/.claude/hooks/`.
+
+Building your own forces you to understand the pieces. Installing a plugin is faster but you inherit its assumptions. Both are valid; just know which one you're doing.
 
 ---
 
-## Marketplace: `coreyhaines31`
-**Source repo:** `coreyhaines31` (GitHub)
+## Evaluating a plugin before you commit
 
-### marketing-skills
-- **Version:** 1.0.0
-- **Provides — Skills (34):**
-  - SEO/Content: `seo-audit`, `ai-seo`, `schema-markup`, `content-strategy`, `site-architecture`, `programmatic-seo`
-  - CRO: `page-cro`, `form-cro`, `popup-cro`, `onboarding-cro`, `signup-flow-cro`, `paywall-upgrade-cro`
-  - Copy/Ads: `copywriting`, `copy-editing`, `ad-creative`, `paid-ads`, `social-content`, `cold-email`, `email-sequence`
-  - Product/Growth: `launch-strategy`, `pricing-strategy`, `marketing-psychology`, `marketing-ideas`, `competitor-alternatives`, `free-tool-strategy`, `lead-magnets`, `referral-program`, `churn-prevention`
-  - Analytics/Ops: `analytics-tracking`, `ab-test-setup`, `customer-research`, `product-marketing-context`, `sales-enablement`, `revops`
-- **Provides — Tool integrations (75+):** GA4, Mixpanel, HubSpot, Klaviyo, Stripe, Segment, Meta Ads, Semrush, Ahrefs, and more
-
----
-
-## Registered Marketplaces with No Plugins Installed
-
-| Marketplace | Source Repo | Notes |
-|---|---|---|
-| `superpowers-marketplace` | `obra/superpowers-marketplace` | Registered, no plugins installed |
-| `interface-design` | `Dammyjay93/interface-design` | Registered, no plugins installed |
-| `spec-kit` | `github/spec-kit` | Enabled in `enabledPlugins` (`spec-kit@spec-kit: true`) but no cache entry |
-
+Check three things: what commands and skills it adds (do they overlap with something you already have?), whether it installs any MCPs (do you trust those?), and whether the hooks it registers run on events you care about. `claude plugins info <name>` surfaces all of this before you install.

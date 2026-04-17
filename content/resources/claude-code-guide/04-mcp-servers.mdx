@@ -1,648 +1,126 @@
 ---
 title: "04 — MCP Servers"
 date: "2026-04-16"
-description: "Every MCP I run, what each does, and when to pick one over another."
+description: "What MCPs are, how to pick them, and how to wire one up."
 order: 4
 group: "Extensions"
 groupSlug: "03-extensions"
 tags: ["claude-code", "guide"]
 ---
 
-> MCPs are how Claude connects to the outside world: Gmail, Notion, GitHub, databases, browsers, anything with an API. Each MCP exposes tools Claude can call. The right set turns Claude from a code editor into a research-and-do assistant.
+> MCPs (Model Context Protocol servers) are how Claude connects to the outside world. Each one exposes a set of tools Claude can call mid-conversation — search a database, read a calendar, open a browser tab. The right set turns Claude from a code editor into a research-and-do assistant.
 
 ---
 
-Every MCP server connected to Claude Code — tool lists, invocation patterns, auth requirements, and setup details.
+## What an MCP actually is
 
----
-
-## How MCPs Are Configured
+An MCP server is a small process that runs alongside Claude Code and exposes tools over a standard protocol. When you ask Claude to "check my Notion task board" or "fetch the latest docs for this library," it's calling a tool on an MCP server to do the real work.
 
 Claude Code loads MCP servers from two places:
 
-- **`~/.claude/mcp.json`** — custom servers (currently: `memory-system`)
-- **Plugin system** (`~/.claude/plugins/installed_plugins.json`) — plugin-bundled MCPs installed via `claude install`
-- **`~/.claude/settings.local.json`** — controls which mcpjson servers are enabled:
-  ```json
-  "enabledMcpjsonServers": ["memory", "notion", "figma", "miro"]
-  ```
+- **`~/.claude/mcp.json`** — custom servers you configure manually
+- **Plugin system** — MCPs bundled inside plugins you install via `claude install`
+
+You can see what's loaded with `claude mcp list` and add a new server with `claude mcp add`.
 
 ---
 
-## Routing Conventions (`~/.claude/rules/mcp.md`)
+## The three auth patterns
 
-| MCP | Use for |
-|---|---|
-| Notion | Knowledge Base, Agent Task Board. Primary task log. |
-| GitHub | Issues, PRs, file contents, branches. Use `gh` CLI via Bash instead for most tasks. |
-| Gmail | Read/search email, create drafts. Never send without explicit approval. |
-| Google Calendar | List/create/update events, find free time, respond to invites. |
-| context7 | Up-to-date library docs. Always: `resolve-library-id` → `query-docs`. |
-| Apify | Web scraping. Sequence: `search-actors` → `fetch-actor-details` → `call-actor`. |
-| Playwright | Browser automation, E2E testing, screenshots, form filling. |
-| Peekaboo | Screenshot/screen capture and visual analysis of current screen. |
-| Memory (graph) | Persistent knowledge graph: entities, relations, observations. |
-| claude-mem search | Search session context DB; use `smart_search` for general queries. |
+Almost every MCP falls into one of three categories. Pick the pattern that matches how the service authenticates:
 
----
+### 1. OAuth (browser-based login)
+Used by services like Google, Notion, Figma. You authorize Claude once in the browser and the MCP holds the token. No config needed beyond installing.
 
-## 1. memory-system (Custom Python MCP)
-
-**Type:** Custom Python MCP, self-hosted  
-**Location:** `~/memory-system/`  
-**Config entry in `~/.claude/mcp.json`:**
 ```json
 {
   "mcpServers": {
-    "memory-system": {
-      "command": "path/to/memory-system/.venv/bin/python",
-      "args": ["path/to/memory-system/mcp/memory_server.py"],
-      "cwd": "path/to/memory-system"
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-server-notion"],
+      "auth": "oauth"
     }
   }
 }
 ```
 
-**What it does:** A self-healing knowledge system combining an Obsidian-style wiki with Pinecone vector search. Automatically ingests URLs and files, maintains a structured wiki, runs health checks, and exposes everything as MCP tools to Claude Code.
+### 2. CLI / SDK (subprocess)
+Used by GitHub (`gh` CLI), local tools, anything that runs as a command. Claude spawns the process; auth is handled by whatever credentials are already on your machine.
 
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `mcp__memory-system__search_wiki` | Full-text search across all wiki pages. Returns ranked results with context. |
-| `mcp__memory-system__search_pinecone` | Semantic search against Pinecone vector database. Returns top matches with source and text. Param: `top_k` (default 5). |
-| `mcp__memory-system__ingest_url` | Scrape a URL, save to `raw/`, embed in Pinecone, and suggest wiki updates. |
-| `mcp__memory-system__ingest_file` | Ingest a local file into Pinecone for semantic search. |
-| `mcp__memory-system__update_wiki_page` | Create or update a wiki page. Path relative to `obsidian/wiki/`. Auto-updates `index.mmd`. |
-| `mcp__memory-system__run_health_check` | Run full 7-point health check (orphans, dead links, stale content, contradictions, drift, sync, log overflow). |
-| `mcp__memory-system__get_log` | Get last N lines from session log (`obsidian/log.md`). Param: `last_n` (default 20). |
-| `mcp__memory-system__list_wiki_pages` | List all wiki pages from `index.mmd` as structured data. |
-
-### Architecture
-
-```
-memory-system/
-├── mcp/memory_server.py     # MCP server (FastMCP, runs on-demand via Claude Code)
-├── obsidian/
-│   ├── wiki/                # Claude-maintained knowledge wiki
-│   │   └── index.mmd        # Master index: filepath | summary | confidence | date
-│   ├── raw/                 # Drop files here for auto-ingestion
-│   └── log.md               # Append-only session log
-├── pinecone/
-│   ├── ingest.py            # Chunk + embed + upsert to Pinecone
-│   ├── query.py             # Semantic search
-│   └── config.json          # Paths, model, chunk size (non-secret)
-├── daemon/
-│   ├── watcher.py           # Auto-ingests new files from watched paths
-│   ├── scheduler.py         # Cron: health check Sunday 00:00, lint daily 03:00
-│   ├── health_check.py      # 7-point health audit
-│   └── self_heal.py         # Auto-fixes safe issues
-└── tools/                   # CLI wrappers for all operations
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "gh",
+      "args": ["mcp", "serve"]
+    }
+  }
+}
 ```
 
-### Pinecone Integration
+### 3. Env-var API key
+Used by external APIs (OpenAI-compatible, database connectors, third-party platforms). You pass the key as an environment variable.
 
-- **Index name:** `memory-system`
-- **Embedding model:** `multilingual-e5-large` (via Pinecone integrated inference)
-- **Chunk size:** 512 tokens, overlap 50
-- **Watched paths** (auto-ingested by daemon):
-  - `~/my-vault/01-Areas/`
-  - `~/my-vault/02-Projects/` (your active project folders)
-  - `~/my-vault/03-Resources/`
-  - `~/memory-system/obsidian/raw/`
+```json
+{
+  "mcpServers": {
+    "my-api": {
+      "command": "npx",
+      "args": ["-y", "some-mcp-server"],
+      "env": {
+        "API_KEY": "${MY_API_KEY}"
+      }
+    }
+  }
+}
+```
 
-### Obsidian Wiki Integration
+---
 
-Wiki pages follow a strict schema (from `schema.md`):
-- **Naming:** kebab-case (`mental-model-first-principles.md`)
-- **Required frontmatter:** `Last updated`, `Confidence` (high/medium/low/deprecated), `Links`
-- **Index format:** `filepath\t12-word-summary\tconfidence\tdate` in `index.mmd`
-- **Log format:** `ISO datetime | what was ingested or changed | pages updated`
-- Active wikis live under `obsidian/wiki/` organized by domain (projects, content-writing, dev-infrastructure, marketing-growth, products)
+## A minimal worked example: context7
 
-### Self-Healing System (7 automated checks)
+context7 gives Claude up-to-date library documentation on demand. When you're working with React, Prisma, Tailwind — any library — Claude can pull the current docs instead of hallucinating from stale training data.
 
-1. **Orphan pages** — wiki pages not in `index.mmd` flagged for addition
-2. **Dead links** — `[[wiki-links]]` pointing to non-existent pages
-3. **Stale content** — pages not updated in 90+ days marked `confidence: low`
-4. **Contradictions** — Claude Haiku compares linked pages for factual conflicts
-5. **Index drift** — dead index entries (pointing to deleted files) removed
-6. **Pinecone sync** — files in `processed.json` missing from Pinecone re-ingested
-7. **Log overflow** — `log.md` over 500 lines gets archived and reset
-
-Auto-fixed: index drift, log overflow, stale marking. Needs human review: contradictions, page merges.
-
-### Setup & Dependencies
+**Install:**
 
 ```bash
-# Install
-cd ~/memory-system
-bash install.sh    # Creates .venv, installs deps, verifies connections
-
-# Start background daemons
-bash start.sh      # Launches watcher + scheduler as nohup processes
-
-# Stop
-bash stop.sh
+claude mcp add context7 -- npx -y @upstash/context7-mcp
 ```
 
-**Python dependencies (`requirements.txt`):**
-```
-anthropic, pinecone>=5.0.0, watchdog, apscheduler, trafilatura,
-tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
-```
+**Invoke it by describing what you need:**
 
-**Auth required:** `~/memory-system/.env` must contain:
-- `PINECONE_API_KEY`
-- `ANTHROPIC_API_KEY` (for contradiction detection in health checks)
+> "Before you write the query, fetch the current Prisma `findMany` API from context7."
 
-**Cost:** ~$0.10/month (Pinecone free tier 2GB, Haiku API calls ~$0.05)
+Claude will call `resolve-library-id` then `query-docs` automatically. That's the full integration — one install, one natural-language prompt.
 
 ---
 
-## 2. Apify
+## How to find good MCPs
 
-**Type:** Platform default (cloud)  
-**Prefix:** `mcp__apify__`
+- **Anthropic's official list:** [modelcontextprotocol.io/servers](https://modelcontextprotocol.io/servers) — curated, maintained
+- **GitHub:** search `mcp-server-*` or browse `anthropics/model-context-protocol`
+- **Plugin marketplace:** `claude plugins search` surfaces MCPs bundled into Claude Code plugins
 
-**What it does:** Web scraping and automation marketplace. Extracts structured data from social media, e-commerce, search engines, maps, and travel sites.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `search-actors` | Search Apify Store for actors matching a use case |
-| `fetch-actor-details` | Get full README and input schema for a specific actor |
-| `call-actor` | Execute an actor with given input. Supports `async: true/false`. |
-| `get-actor-run` | Check status/output of a running actor |
-| `get-actor-output` | Retrieve dataset results from a completed run |
-| `search-apify-docs` | Search Apify platform documentation |
-| `fetch-apify-docs` | Fetch specific Apify documentation pages |
-| `apify--rag-web-browser` | Direct web browsing for RAG use cases |
-
-### Invocation Pattern (mandatory sequence)
-```
-1. mcp__apify__search-actors       → find the right actor
-2. mcp__apify__fetch-actor-details → get input schema
-3. mcp__apify__call-actor          → execute with proper input
-4. mcp__apify__get-actor-output    → retrieve results
-```
-
-**Auth:** Apify API token (configured in Claude Code settings)
+When evaluating one: check whether it uses an auth pattern you trust, whether the tool surface is narrow enough to be safe, and whether there's a clear README showing what each tool actually does.
 
 ---
 
-## 3. computer-use
+## Categories worth knowing about
 
-**Type:** Platform default (desktop automation)  
-**Prefix:** `mcp__computer-use__`
+**Docs & code context**
+Pull current library docs, search codebases, fetch API references. context7 is the go-to. Useful anytime you're working in an unfamiliar library or version.
 
-**What it does:** Full desktop control — screenshots, mouse clicks, keyboard input, scrolling, clipboard, application management. Tiered access by app category.
+**Data & content**
+Read/write Notion, Airtable, Google Sheets, databases. Lets Claude query your actual data instead of you copy-pasting it into the chat.
 
-### Tool List
+**Browser & automation**
+Playwright or Puppeteer MCPs give Claude a real browser. Good for scraping, E2E checks, or filling forms programmatically.
 
-| Tool | Description |
-|---|---|
-| `screenshot` | Capture current screen state |
-| `left_click` / `right_click` / `middle_click` / `double_click` | Mouse click operations |
-| `left_click_drag` / `left_mouse_down` / `left_mouse_up` | Drag operations |
-| `mouse_move` | Move cursor to coordinates |
-| `scroll` | Scroll at position |
-| `type` | Type text into focused element |
-| `key` / `hold_key` | Press keyboard keys/shortcuts |
-| `triple_click` | Triple-click to select text |
-| `open_application` | Launch or focus an application |
-| `list_granted_applications` | List apps with granted access |
-| `request_access` | Request permission to control an app |
-| `read_clipboard` / `write_clipboard` | Clipboard operations |
-| `cursor_position` | Get current cursor position |
-| `switch_display` | Switch between monitors |
-| `zoom` | Zoom in/out |
-| `wait` | Wait for a condition |
-| `computer_batch` | Batch multiple actions |
-
-### Access Tiers
-- **Browsers** → `read` tier: visible in screenshots, clicks/typing blocked. Use `claude-in-chrome` MCP instead.
-- **Terminals/IDEs** → `click` tier: visible and left-clickable, no typing/right-click. Use Bash tool for shell commands.
-- **Everything else** → `full` tier: no restrictions.
-
-**Usage:** Always call `request_access` with required app list before any action. Use as last resort after dedicated MCPs (Slack, Gmail, etc.) and Chrome MCP.
+**Communication & calendar**
+Gmail, Slack, Google Calendar — careful here. Scope permissions tightly and never give write access unless you're sure you want Claude acting on your behalf.
 
 ---
 
-## 4. context7
+## Keeping it lean
 
-**Type:** Plugin-bundled (`context7@claude-plugins-official`)  
-**Prefix:** `mcp__context7__`
-
-**What it does:** Fetches current documentation for any library, framework, SDK, API, or CLI tool directly into context. Prevents stale training data from corrupting library syntax.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `resolve-library-id` | Find the context7 ID for a library by name |
-| `query-docs` | Fetch documentation for a library by topic |
-
-### Mandatory Usage Pattern
-```
-1. mcp__context7__resolve-library-id  → get library ID
-2. mcp__context7__query-docs          → fetch relevant docs
-```
-
-**When to use:** Before writing code for any library or framework — React, Next.js, Prisma, Express, Tailwind, Django, etc. Mandatory even for well-known ones; training data goes stale.
-
-**When NOT to use:** Refactoring, scripts from scratch, debugging business logic, code review, general programming concepts.
-
----
-
-## 5. lean-ctx
-
-**Type:** Platform default (context engineering layer)  
-**Prefix:** `mcp__lean-ctx__`
-
-**What it does:** A context engineering layer that replaces native file/shell/search tools with token-compressed equivalents. Session caching, 8 compression modes, pattern-based output compression, multi-agent coordination.
-
-### Core Tool List (primary tools)
-
-| Tool | Replaces | Description |
-|---|---|---|
-| `ctx_read` | Read / cat / head / tail | Cached file reads, 8 compression modes. Re-reads ~13 tokens. |
-| `ctx_shell` | Bash shell commands | Compressed shell output (90+ patterns). |
-| `ctx_search` | Grep / rg | Token-efficient regex search. |
-| `ctx_tree` | ls / find | Compact directory maps with file counts. |
-| `ctx_edit` | Edit (when Read unavailable) | Read + replace + write in one call. |
-
-### Compression Modes for `ctx_read`
-- `full` — cached read (use for files you will edit)
-- `map` — deps + API signatures (for context-only files)
-- `signatures` — API surface only
-- `diff` — changed lines only
-- `aggressive` — syntax stripped
-- `entropy` — Shannon + Jaccard filtering
-- `lines:N-M` — specific line range (e.g., `lines:400-500`)
-
-### Advanced Tools
-
-| Tool | Description |
-|---|---|
-| `ctx_session` | Session memory persistence |
-| `ctx_knowledge` | Cross-session fact storage with temporal validity and contradiction detection. Actions: `remember`, `recall`, `timeline`, `rooms`, `search`, `wakeup` |
-| `ctx_agent` | Multi-agent coordination: `handoff`, `sync`, `diary` |
-| `ctx_share` | Push context to subagents at checkpoints |
-| `ctx_semantic_search` | Find similar code by meaning (use when exact search misses) |
-| `ctx_overview` / `ctx_preload` / `ctx_dedup` / `ctx_compress` | Auto-run behind the scenes for context optimization |
-| `ctx_graph` / `ctx_graph_diagram` | Code dependency graphs |
-| `ctx_outline` | File structural outline |
-| `ctx_routes` | API route discovery |
-| `ctx_callers` / `ctx_callees` | Function call chain analysis |
-| `ctx_symbol` | Symbol lookup |
-| `ctx_multi_read` | Read multiple files in one call |
-| `ctx_discover` | Codebase discovery |
-| `ctx_benchmark` | Compression benchmark |
-| `ctx_metrics` | Context usage metrics |
-
-**Note:** lean-ctx replaces read operations only. Native Edit/Write/StrReplace tools are unchanged.
-
----
-
-## 6. Notion
-
-**Type:** Plugin-bundled / mcpjson (`enabledMcpjsonServers`)  
-**Prefix:** `mcp__notion__`
-
-**What it does:** Full Notion workspace access — read/write pages and databases, search, create, update, manage comments, teams, and users. Primary task log and knowledge base.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `notion-search` | Search across all Notion content |
-| `notion-fetch` | Fetch a specific page or database by ID/URL |
-| `notion-create-pages` | Create new pages in a database or as subpages |
-| `notion-update-page` | Update page properties or content |
-| `notion-update-data-source` | Update database records |
-| `notion-create-database` | Create a new database |
-| `notion-create-view` | Create a database view |
-| `notion-update-view` | Update an existing view |
-| `notion-duplicate-page` | Duplicate a page |
-| `notion-move-pages` | Move pages to a different location |
-| `notion-create-comment` | Add a comment to a page |
-| `notion-get-comments` | Retrieve comments from a page |
-| `notion-get-teams` | List workspace teams |
-| `notion-get-users` | List workspace users |
-
-**Auth:** Notion integration token (configured in Claude Code)
-
----
-
-## 7. Playwright
-
-**Type:** Platform default (browser automation)  
-**Prefix:** `mcp__playwright__`
-
-**What it does:** Full browser automation. E2E testing, form filling, screenshots, network inspection — reach for this when no dedicated MCP exists for the target site.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `browser_navigate` | Navigate to a URL |
-| `browser_navigate_back` | Go back in browser history |
-| `browser_click` | Click an element |
-| `browser_type` | Type text into an input |
-| `browser_fill_form` | Fill multiple form fields at once |
-| `browser_select_option` | Select a dropdown option |
-| `browser_press_key` | Press a keyboard key |
-| `browser_hover` | Hover over an element |
-| `browser_drag` | Drag an element |
-| `browser_file_upload` | Upload a file to a file input |
-| `browser_take_screenshot` | Capture screenshot |
-| `browser_snapshot` | DOM snapshot for analysis |
-| `browser_evaluate` | Run JavaScript in the browser |
-| `browser_run_code` | Execute code in browser context |
-| `browser_console_messages` | Retrieve console output |
-| `browser_network_requests` | Inspect network requests |
-| `browser_wait_for` | Wait for element/condition |
-| `browser_handle_dialog` | Handle alert/confirm/prompt dialogs |
-| `browser_tabs` | Manage browser tabs |
-| `browser_resize` | Resize browser window |
-| `browser_close` | Close browser |
-
----
-
-## 8. Figma
-
-**Type:** Plugin-bundled (`figma@claude-plugins-official`), also in `enabledMcpjsonServers`  
-**Prefix:** `mcp__plugin_figma_figma__`
-
-**What it does:** Access Figma design files, extract design data, download assets, bridge design-to-code workflows.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `authenticate` | Initiate Figma OAuth authentication |
-| `complete_authentication` | Complete the OAuth flow |
-
-**Full capabilities via figma skills:** Use `figma:figma-use`, `figma:figma-implement-design`, `figma:figma-generate-design`, `figma:figma-generate-library`, `figma:figma-code-connect`, `figma:figma-create-design-system-rules`
-
-**Auth:** Figma OAuth (initiate with `authenticate` tool, complete with `complete_authentication`)
-
----
-
-## 9. Slack
-
-**Type:** Plugin-bundled (`slack@claude-plugins-official`)  
-**Prefix:** `mcp__plugin_slack_slack__`
-
-**What it does:** Slack workspace access — messaging, channel management, communication workflows.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `authenticate` | Initiate Slack OAuth authentication |
-| `complete_authentication` | Complete the OAuth flow |
-
-**Full capabilities via slack skills:** `slack:slack-messaging`, `slack:slack-search`, `slack:standup`, `slack:find-discussions`, `slack:summarize-channel`, `slack:channel-digest`, `slack:draft-announcement`
-
-**Auth:** Slack OAuth
-
----
-
-## 10. Vercel
-
-**Type:** Plugin-bundled (from `installed_plugins.json`)  
-**Prefix:** `mcp__plugin_vercel_vercel__`
-
-**What it does:** Vercel platform management — deployments, environment variables, build logs, domain config, serverless functions, storage.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `authenticate` | Initiate Vercel OAuth authentication |
-| `complete_authentication` | Complete the OAuth flow |
-
-**Full capabilities via vercel skills:** `vercel:deploy`, `vercel:env`, `vercel:status`, `vercel:vercel-functions`, `vercel:vercel-storage`, `vercel:deployments-cicd`, `vercel:routing-middleware`, `vercel:next-cache-components`, `vercel:vercel-agent`, `vercel:vercel-sandbox`, `vercel:vercel-cli`
-
-**Auth:** Vercel OAuth
-
----
-
-## 11. claude-mem / mcp-search
-
-**Type:** Plugin-bundled (`claude-mem@thedotmack`)  
-**Prefix:** `mcp__plugin_claude-mem_mcp-search__`
-
-**What it does:** Searches the Claude session context database for cross-session memory recall. Smart semantic search over past interactions.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `smart_search` | General-purpose semantic search across session history |
-| `search` | Direct search query against session context DB |
-| `get_observations` | Retrieve stored observations about entities/topics |
-| `smart_outline` | Generate a structured outline of stored knowledge |
-| `smart_unfold` | Expand and explore a topic across session history |
-| `timeline` | View chronological timeline of events/changes |
-| `__IMPORTANT` | System-level tool (internal) |
-
-**Routing:** Use `smart_search` for general queries. Triggered by the `claude-mem:mem-search` skill when prior session context is needed.
-
----
-
-## 12. canva-dev
-
-**Type:** Platform default  
-**Prefix:** `mcp__canva-dev__`
-
-**What it does:** Canva Apps SDK documentation and development tools — Canva apps, UI kit components, Connect integrations.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `create-canva-app-instructions` | Instructions for creating a new Canva app |
-| `canva-apps-migration-instructions` | Migration guides between SDK versions |
-| `design-review-instructions` | Design review guidelines for Canva apps |
-| `read-canva-app-ui-kit-index` | Index of available UI kit components |
-| `read-canva-app-ui-kit-page` | Read a specific UI kit component page |
-| `read-canva-app-ui-kit-patterns-catalog` | Browse UI patterns catalog |
-| `read-canva-apps-sdk-design-guidelines` | SDK design guidelines |
-| `read-canva-apps-sdk-documentation-index` | SDK documentation index |
-| `read-canva-cli-documentation` | Canva CLI documentation |
-| `read-canva-connect-documentation-index` | Canva Connect API docs index |
-| `read-canva-documentation-pages` | Read specific documentation pages |
-
----
-
-## 13. Markdownify
-
-**Type:** Platform default  
-**Prefix:** `mcp__markdownify__`
-
-**What it does:** Converts web pages, PDFs, Office documents, images, audio, YouTube videos, and Git repos to Markdown.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `webpage-to-markdown` | Convert a URL to clean Markdown |
-| `pdf-to-markdown` | Convert PDF file to Markdown |
-| `docx-to-markdown` | Convert Word document to Markdown |
-| `xlsx-to-markdown` | Convert Excel spreadsheet to Markdown |
-| `pptx-to-markdown` | Convert PowerPoint to Markdown |
-| `image-to-markdown` | Extract text/content from image to Markdown |
-| `audio-to-markdown` | Transcribe audio to Markdown |
-| `youtube-to-markdown` | Extract YouTube video transcript to Markdown |
-| `git-repo-to-markdown` | Convert a Git repository to Markdown summary |
-| `bing-search-to-markdown` | Search Bing and return results as Markdown |
-| `get-markdown-file` | Read a local Markdown file |
-
----
-
-## 14. Tavily
-
-**Type:** Platform default  
-**Prefix:** `mcp__tavily__`
-
-**What it does:** AI-optimized web search — real-time search, deep research, crawling, URL extraction, site mapping.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `tavily_search` | Real-time web search optimized for AI responses |
-| `tavily_research` | Deep research on a topic across multiple sources |
-| `tavily_crawl` | Crawl a website and extract structured content |
-| `tavily_extract` | Extract content from specific URLs |
-| `tavily_map` | Generate a site map of a website |
-| `tavily_skill` | Meta-tool for skill-based research workflows |
-
-**Auth:** Tavily API key
-
----
-
-## 15. Magic (21st.dev)
-
-**Type:** Platform default  
-**Prefix:** `mcp__magic__`
-
-**What it does:** AI-powered UI component generation using 21st.dev's component library. Production-ready React/Next.js components.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `21st_magic_component_builder` | Generate a UI component from a description |
-| `21st_magic_component_inspiration` | Browse component inspiration/examples |
-| `21st_magic_component_refiner` | Refine or improve an existing component |
-| `logo_search` | Search for brand logos |
-
-**When to use:** Building new UI components. Check shadcn/ui first, then Magic UI (`npx magicui-cli@latest add`), then fall back here for custom builds.
-
----
-
-## 16. Peekaboo
-
-**Type:** Platform default  
-**Prefix:** `mcp__peekaboo__`
-
-**What it does:** Screenshot capture and visual analysis of the current macOS screen. Lighter than `mcp__computer-use__` for read-only inspection.
-
-### Tool List
-
-| Tool | Description |
-|---|---|
-| `image` | Capture a screenshot of the screen or a specific app |
-| `analyze` | Analyze a captured screenshot with vision AI |
-| `list` | List available screens/displays |
-
-**When to use:** Need to see screen state without interacting. Use before asserting about app state.
-
----
-
-## Plugin-Bundled MCPs (Auth Required)
-
-Installed via plugins, but require OAuth before their full tool sets are available:
-
-| Plugin | MCP Prefix | Auth Tools | Full Skills Available |
-|---|---|---|---|
-| `figma@claude-plugins-official` | `mcp__plugin_figma_figma__` | `authenticate`, `complete_authentication` | figma:* skills |
-| `slack@claude-plugins-official` | `mcp__plugin_slack_slack__` | `authenticate`, `complete_authentication` | slack:* skills |
-| `vercel@claude-plugins-official` | `mcp__plugin_vercel_vercel__` | `authenticate`, `complete_authentication` | vercel:* skills |
-| `telegram` (in `installed_plugins.json`) | — | configure via `telegram:configure` skill | `telegram:access` |
-
----
-
-## Enabled mcpjson Servers
-
-From `settings.local.json`:
-```json
-"enabledMcpjsonServers": ["memory", "notion", "figma", "miro"]
-```
-
-- **memory** — Knowledge graph MCP (entities, relations, observations via `mcp__memory__`)
-- **notion** — Full Notion workspace access
-- **figma** — Figma design file access
-- **miro** — Miro board diagrams and docs
-
----
-
-## MCP Decision Tree
-
-```
-Task involves a specific platform (Notion, Slack, GitHub, etc.)?
-  → Use dedicated MCP for that platform
-
-Task involves web interaction?
-  → Has dedicated MCP? Use it.
-  → Web app, no dedicated MCP? Use Playwright.
-  → Need to read current screen? Use Peekaboo.
-  → Need to control native desktop app? Use computer-use.
-
-Task involves library documentation?
-  → Use context7 (mandatory before writing code)
-
-Task involves web search/research?
-  → Use Tavily
-
-Task involves knowledge/memory recall?
-  → Past session context: claude-mem (smart_search)
-  → Long-term semantic archive: memory-system (search_pinecone)
-  → Wiki knowledge: memory-system (search_wiki)
-  → Graph entities/relations: memory (mcp__memory__)
-
-Task involves file/code operations?
-  → Use lean-ctx tools (ctx_read, ctx_search, ctx_tree, ctx_shell)
-
-Task involves UI component generation?
-  → Check shadcn/ui → Magic UI → mcp__magic__ tools
-```
-
----
-
-## Quick Reference: All MCP Prefixes
-
-| Prefix | Server |
-|---|---|
-| `mcp__memory-system__` | Custom Python memory system |
-| `mcp__apify__` | Apify web scraping platform |
-| `mcp__computer-use__` | Desktop automation |
-| `mcp__context7__` | Library documentation |
-| `mcp__lean-ctx__` | Context engineering layer |
-| `mcp__notion__` | Notion workspace |
-| `mcp__playwright__` | Browser automation |
-| `mcp__plugin_figma_figma__` | Figma design files |
-| `mcp__plugin_slack_slack__` | Slack messaging |
-| `mcp__plugin_vercel_vercel__` | Vercel deployments |
-| `mcp__plugin_claude-mem_mcp-search__` | Session context search |
-| `mcp__canva-dev__` | Canva apps SDK docs |
-| `mcp__markdownify__` | Format-to-Markdown conversion |
-| `mcp__tavily__` | Web search and research |
-| `mcp__magic__` | UI component generation |
-| `mcp__peekaboo__` | Screen capture and analysis |
-| `mcp__memory__` | Knowledge graph (mcpjson) |
+Don't install MCPs speculatively. Every server you add is a process that starts with Claude Code and a surface Claude might hallucinate calling. Start with one or two, validate they're useful, then expand. A focused set of MCPs you understand beats a bloated list you don't.
