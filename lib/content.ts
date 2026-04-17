@@ -136,3 +136,34 @@ export function getFolderItems(
   const folder = tree.folders.find((f) => f.slug === folderSlug);
   return folder?.items ?? [];
 }
+
+export type VirtualGroup = {
+  slug: string;       // groupSlug, e.g. "01-fundamentals"
+  name: string;       // display name, e.g. "Fundamentals"
+  items: ContentItem[];
+};
+
+export function getFolderGroups(
+  section: string,
+  folderSlug: string
+): VirtualGroup[] {
+  const items = getFolderItems(section, folderSlug).filter(
+    (i) => i.slugParts[i.slugParts.length - 1] !== "index"
+  );
+  const map = new Map<string, VirtualGroup>();
+  for (const item of items) {
+    const slug = item.groupSlug ?? "misc";
+    const name = item.group ?? "Other";
+    if (!map.has(slug)) map.set(slug, { slug, name, items: [] });
+    map.get(slug)!.items.push(item);
+  }
+  return Array.from(map.values()).sort((a, b) => (a.slug < b.slug ? -1 : 1));
+}
+
+export function getFolderGroup(
+  section: string,
+  folderSlug: string,
+  groupSlug: string
+): VirtualGroup | null {
+  return getFolderGroups(section, folderSlug).find((g) => g.slug === groupSlug) ?? null;
+}
