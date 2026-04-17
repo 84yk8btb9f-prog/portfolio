@@ -28,7 +28,18 @@ export function MdxContent({ source, title, date, status }: Props) {
             </span>
           )}
           {status && (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border border-[#DCDCDC] text-[#86868b]">
+            <span
+              className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border"
+              style={
+                status === "active"
+                  ? { background: "#f0fdf4", borderColor: "#bbf7d0", color: "#15803d" }
+                  : status === "building"
+                  ? { background: "#fffbeb", borderColor: "#fde68a", color: "#b45309" }
+                  : status === "shipped"
+                  ? { background: "#eff6ff", borderColor: "#bfdbfe", color: "#1d4ed8" }
+                  : { background: "transparent", borderColor: "#DCDCDC", color: "#86868b" }
+              }
+            >
               {status}
             </span>
           )}
