@@ -1,16 +1,34 @@
 ---
 title: "Claude Code — Field Guide"
 date: "2026-04-16"
-description: "Honest notes on how I actually run Claude Code. Seventeen sections, grouped by topic."
+description: "Honest notes on how I actually run Claude Code. Start here if you've never touched it."
 order: 0
 tags: ["claude-code", "guide"]
 ---
 
-The full writeup of how I run Claude Code day to day — the settings, the agents, the hooks, the MCPs, the skills that earn their keep, and the ones I stopped using.
+## What is Claude Code?
 
-Not a tutorial. Not a vendor pitch. A working notebook from someone shipping with it.
+Claude Code is Anthropic's command-line tool. You run it in your terminal, ask it to do something, and it can read your files, edit them, run shell commands, and build software on your machine — in a loop, until the job is done.
 
-Read in order, or jump to the topic you need.
+It's different from pasting code into a chat window. Claude Code is **agentic**: it decides what to read, what to run, when to stop and ask. Used well, it's less "AI autocomplete" and more "a smart junior engineer who lives in your terminal."
+
+Out of the box it works fine. Configured properly, it's the most productive setup I've ever run. This guide is the configuration part.
+
+---
+
+## Who this guide is for
+
+- You've installed Claude Code (or are about to) and want to set it up right the first time.
+- You've been using it for a while and suspect you're barely scratching the surface.
+- You've heard terms like `CLAUDE.md`, MCP, hooks, skills, agents — and want to know what they actually do and whether you need them.
+
+No prior knowledge assumed. Each section explains the concept first, then shows how I run it.
+
+---
+
+## How to read this
+
+Seventeen sections, grouped by topic. Read in order the first time, then bookmark the sections you'll come back to. Each page opens with a **New here?** box that explains the concept in plain English before the reference material starts.
 
 ## Fundamentals
 
