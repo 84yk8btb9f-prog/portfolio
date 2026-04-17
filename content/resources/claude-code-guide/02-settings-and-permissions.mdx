@@ -1,0 +1,546 @@
+---
+title: "02 — Settings & Permissions"
+date: "2026-04-16"
+description: "settings.json, permission rules, auto-approve patterns, and deny lists."
+order: 2
+tags: ["claude-code", "guide"]
+---
+
+> Source files: `~/.claude/settings.json`, `~/.claude/settings.local.json`, `~/.claude/mcp.json`
+
+---
+
+## 1. Top-Level Behaviour Settings
+
+| Key | Value | What it does |
+|-----|-------|--------------|
+| `defaultMode` | `"bypassPermissions"` | Claude acts without asking permission for every tool call. Permissions are still enforced by the `allow`/`ask` lists — this just bypasses the generic "do you want to allow?" runtime prompt. |
+| `skipDangerousModePermissionPrompt` | `true` | Suppresses the one-time startup warning shown when `bypassPermissions` mode is active. Lets sessions start silently. |
+| `advisorModel` | `"opus"` | The model used when the `advisor()` tool is invoked for deep-reasoning review. Currently Claude Opus. |
+| `autoUpdatesChannel` | `"latest"` | Claude Code auto-updates from the `latest` release channel (stable). |
+| `showThinkingSummaries` | `true` | Extended thinking summaries are rendered in the UI when the model produces them. |
+
+---
+
+## 2. Environment Variables
+
+Defined in `settings.json` → `env`:
+
+```json
+"env": {
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+  "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
+}
+```
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | `"1"` | Disables Claude Code's built-in automatic memory/summarisation system. All memory is managed manually (via `claude-mem`, knowledge graph, or vault notes). |
+| `CLAUDE_CODE_SUBAGENT_MODEL` | `"sonnet"` | Sets the default model for spawned subagents to Sonnet. Prevents subagents from defaulting to a cheaper/slower model accidentally. |
+
+---
+
+## 3. Permissions — `allow` Array
+
+All operations listed here are auto-approved without a runtime prompt.
+
+### 3.1 Git (Read-Only & Safe)
+```
+Bash(git status)
+Bash(git status --short)
+Bash(git log*)
+Bash(git diff*)
+Bash(git branch*)
+Bash(git show*)
+Bash(git stash list)
+Bash(git remote -v)
+Bash(git reflog*)
+Bash(git blame*)
+```
+
+### 3.2 Git (Write Operations — Auto-Approved)
+```
+Bash(git add:*)
+Bash(git commit:*)
+Bash(git push:*)
+Bash(git rm:*)
+```
+
+### 3.3 NPM / Node Tooling
+```
+Bash(npm run build*)
+Bash(npm run test*)
+Bash(npm run lint*)
+Bash(npm run typecheck*)
+Bash(npm run check*)
+Bash(npx tsc --noEmit*)
+Bash(npx eslint*)
+Bash(node --version)
+Bash(npm --version)
+Bash(npx --version)
+Bash(npx:*)
+Bash(npm show:*)
+Bash(npm pack:*)
+Bash(npm test:*)
+Bash(node:*)
+```
+
+### 3.4 Python / pip
+```
+Bash(pip3:*)
+Bash(pip:*)
+Bash(python3:)
+Bash(python3:*)
+Bash(python:*)
+```
+
+### 3.5 Homebrew & System Package Management
+```
+Bash(brew upgrade:*)
+Bash(brew list:*)
+Bash(brew install:*)
+Bash(nvm install:*)
+```
+
+### 3.6 Shell Utilities — File System
+```
+Bash(ls*)
+Bash(ls:*)
+Bash(cat *)
+Bash(cat:*)
+Bash(head *)
+Bash(head:*)
+Bash(tail *)
+Bash(wc *)
+Bash(wc:*)
+Bash(pwd)
+Bash(find:*)
+Bash(which *)
+Bash(which git:*)
+Bash(which claude:*)
+Bash(mkdir:*)
+Bash(touch:*)
+Bash(cp:*)
+Bash(mv:*)
+Bash(tar:*)
+Bash(zip:*)
+Bash(unzip:*)
+Bash(cd:*)
+Bash(stat:*)
+Bash(open:*)
+Bash(realpath:*)
+Bash(basename:*)
+Bash(dirname:*)
+```
+
+### 3.7 Shell Utilities — Text Processing
+```
+Bash(echo *)
+Bash(grep:*)
+Bash(sed:*)
+Bash(awk:*)
+Bash(jq:*)
+Bash(sort:*)
+Bash(uniq:*)
+Bash(tr:*)
+Bash(cut:*)
+Bash(tee:*)
+Bash(diff:*)
+Bash(xargs:*)
+```
+
+### 3.8 Shell Utilities — Process / Environment
+```
+Bash(date)
+Bash(env | grep *)
+Bash(env)
+Bash(export:*)
+Bash(source:*)
+Bash(source .env.local)
+Bash(kill:*)
+Bash(kill %1)
+Bash(ps:*)
+```
+
+### 3.9 Network / HTTP
+```
+Bash(curl:*)
+Bash(curl -s http://localhost:11434/*)
+```
+
+### 3.10 Vercel CLI
+```
+Bash(vercel --version)
+Bash(vercel whoami)
+Bash(vercel status)
+Bash(vercel list*)
+Bash(vercel logs*)
+Bash(vercel ls:*)
+```
+
+### 3.11 Railway CLI
+```
+Bash(railway --version)
+Bash(railway whoami)
+Bash(railway status*)
+Bash(railway logs*)
+```
+
+### 3.12 Fly.io CLI
+```
+Bash(fly version)
+Bash(fly auth whoami)
+Bash(fly status*)
+Bash(fly logs*)
+```
+
+### 3.13 Netlify CLI
+```
+Bash(netlify --version)
+Bash(netlify status)
+```
+
+### 3.14 Cloudflare Wrangler
+```
+Bash(wrangler --version)
+Bash(wrangler whoami)
+```
+
+### 3.15 GitHub CLI
+```
+Bash(gh:*)
+Bash(gh repo:*)
+```
+
+### 3.16 Claude Code CLI (Internal)
+```
+Bash(claude mcp:*)
+Bash(claude hooks:*)
+```
+
+### 3.17 Ollama (Local LLM)
+```
+Bash(ollama *)
+Bash(pkill ollama)
+```
+
+### 3.18 GCP-LLM (Cloud Ollama Management)
+```
+Bash(gcp-llm *)
+```
+
+### 3.19 MCP Tools — Notion
+```
+mcp__notion__notion-create-view
+mcp__notion__notion-create-pages
+mcp__notion__notion-update-page
+mcp__notion__notion-search
+mcp__notion__notion-fetch
+```
+
+### 3.20 MCP Tools — Playwright
+```
+mcp__playwright__browser_navigate
+mcp__playwright__browser_take_screenshot
+mcp__playwright__browser_snapshot
+mcp__playwright__browser_evaluate
+```
+
+### 3.21 MCP Tools — Apify
+```
+mcp__apify__fetch-actor-details
+mcp__apify__search-actors
+mcp__apify__call-actor
+mcp__apify__get-actor-output
+```
+
+### 3.22 MCP Tools — Other
+```
+mcp__supabase__apply_migration
+mcp__plugin_telegram_telegram__reply
+WebSearch
+```
+
+### 3.23 Superpowers Plugin Scripts (Auto-Approved)
+```
+Bash(~/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/scripts/start-server.sh --project-dir /Users/nikolassapalidis/creator-roast 2>&1)
+Bash(/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/start-server.sh --project-dir /Users/nikolassapalidis/creator-roast 2>&1)
+```
+These were added automatically when the superpowers plugin was invoked in a session.
+
+### 3.24 Highly Specific One-Off Bash Entries (Accumulated from Past Sessions)
+These are path-specific commands that were allowed during debugging/dev sessions:
+
+```
+Bash(ls /Users/nikolassapalidis/creator-roast/app/\(auth\)/)
+Bash(ls /Users/nikolassapalidis/creator-roast/app/\(app\)/audit)
+Bash(grep -rn "text-green-400\|..." /Users/nikolassapalidis/creator-roast/...)
+Bash(grep -n "save.*card\|handleSave\|onClick" /Users/nikolassapalidis/creator-roast/...)
+Bash(grep -n "save\|Save\|card\|Card" /Users/nikolassapalidis/creator-roast/...)
+Bash(grep -n "download\|..." /Users/nikolassapalidis/creator-roast/...)
+Bash(sed -i '' -e 's/border-white\/6/border-border/g' ...)
+Bash(__NEW_LINE_e63ba46c595e9298__ for:*)
+Bash(do)
+Bash(done)
+Bash(LIAT="..." curl -s "https://www.linkedin.com/...")
+Bash(source .env.local)
+```
+> These are remnants of past one-off tasks and should be periodically pruned.
+
+---
+
+## 4. Permissions — `ask` Array (Destructive Operations)
+
+These operations require explicit user confirmation before execution:
+
+```
+Bash(rm *)               — file deletion
+Bash(rmdir *)            — directory removal
+Bash(shred *)            — secure file deletion
+Bash(git push --force*)  — force push (history rewrite)
+Bash(git reset --hard*)  — hard reset (discards local changes)
+Bash(git clean -f*)      — remove untracked files
+Bash(git clean -fd*)     — remove untracked files + dirs
+Bash(git checkout -- *)  — discard file changes
+Bash(git checkout .*)    — discard all working-tree changes
+Bash(git restore *)      — restore files (discard changes)
+Bash(DROP TABLE*)        — SQL table deletion
+Bash(DROP DATABASE*)     — SQL database deletion
+Bash(truncate *)         — SQL table truncation
+Bash(dd *)               — disk/device write (can overwrite drives)
+Bash(mkfs*)              — format filesystem
+```
+
+---
+
+## 5. Hooks
+
+### 5.1 Stop Hook — Task Completion Notification
+
+**Trigger:** When Claude finishes a task (session Stop event).
+
+```json
+{
+  "type": "command",
+  "command": "osascript -e 'display notification \"Claude has finished.\" with title \"Claude Code\" sound name \"Glass\"'"
+}
+```
+Plays the macOS **Glass** sound and shows a system notification.
+
+---
+
+### 5.2 Notification Hook — Attention Required
+
+**Trigger:** When Claude needs user input mid-task.
+
+```json
+{
+  "type": "command",
+  "command": "osascript -e 'display notification \"Claude needs your attention.\" with title \"Claude Code\" sound name \"Ping\"'"
+}
+```
+Plays the macOS **Ping** sound.
+
+---
+
+### 5.3 StopFailure Hook — Error Notification
+
+**Trigger:** When Claude stops due to an unrecoverable error.
+
+```json
+{
+  "type": "command",
+  "command": "osascript -e 'display notification \"Claude stopped with an error.\" with title \"Claude Code\" sound name \"Basso\"'"
+}
+```
+Plays the macOS **Basso** sound (the low-pitched error tone).
+
+---
+
+### 5.4 PreToolUse Hook 1 — lean-ctx Bash Rewrite
+
+**Matcher:** `Bash|bash`
+
+```json
+{
+  "type": "command",
+  "command": "lean-ctx hook rewrite"
+}
+```
+Before any Bash command executes, lean-ctx intercepts and rewrites it if a more token-efficient MCP equivalent exists (e.g., converting `grep` to `ctx_search`). Enforces the lean-ctx layer for shell commands.
+
+---
+
+### 5.5 PreToolUse Hook 2 — lean-ctx Read Redirect
+
+**Matcher:** `Read|read|ReadFile|read_file|View|view|Grep|grep|Search|search|ListFiles|list_files|ListDirectory|list_directory`
+
+```json
+{
+  "type": "command",
+  "command": "lean-ctx hook redirect"
+}
+```
+Before any file-read or search tool is called natively, lean-ctx redirects it to the cached, compressed `ctx_read`/`ctx_search` equivalents. This is the enforcement mechanism for the "ALWAYS use lean-ctx" rule — it's applied at the harness level, not just as a prompt instruction.
+
+---
+
+## 6. Status Line
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "sh /Users/nikolassapalidis/.claude/statusline-command.sh"
+}
+```
+
+A custom shell script drives the Claude Code status bar. The script at `~/.claude/statusline-command.sh` determines what is displayed in the CLI status line (likely shows model, context usage, git branch, or similar runtime info).
+
+---
+
+## 7. Enabled Plugins (`enabledPlugins`)
+
+### Enabled (`true`)
+
+| Plugin Key | Marketplace | Purpose |
+|------------|-------------|---------|
+| `agent-alchemy-claude-tools@sequenzia` | sequenzia/agent-alchemy | Claude Code team/task orchestration agents |
+| `agent-alchemy-core-tools@sequenzia` | sequenzia/agent-alchemy | Core analysis, diagrams, language patterns |
+| `agent-alchemy-dev-tools@sequenzia` | sequenzia/agent-alchemy | Feature dev, bug killer, architecture patterns |
+| `agent-alchemy-git-tools@sequenzia` | sequenzia/agent-alchemy | Git commit helpers |
+| `agent-alchemy-sdd-tools@sequenzia` | sequenzia/agent-alchemy | Spec-driven development (SDD) tasks |
+| `agent-alchemy-tdd-tools@sequenzia` | sequenzia/agent-alchemy | Test-driven development (TDD) tasks |
+| `claude-mem@thedotmack` | thedotmack/claude-mem | Session memory search and smart exploration |
+| `code-review@claude-plugins-official` | claude-plugins-official | Code review skill |
+| `code-simplifier@claude-plugins-official` | claude-plugins-official | Code simplification/refactoring |
+| `commit-commands@claude-plugins-official` | claude-plugins-official | Commit, push, PR commands |
+| `context-engineering@context-engineering-marketplace` | muratcankoylan/agent-skills-for-context-engineering | Context engineering patterns & evaluation |
+| `feature-dev@claude-plugins-official` | claude-plugins-official | Feature development workflow |
+| `figma@claude-plugins-official` | claude-plugins-official | Figma design-to-code integration |
+| `frontend-design@claude-plugins-official` | claude-plugins-official | Frontend design skill |
+| `hookify@claude-plugins-official` | claude-plugins-official | Hook configuration and management |
+| `pdf@anthropic-agent-skills` | anthropics/skills | PDF read/extract skill |
+| `pr-review-toolkit@claude-plugins-official` | claude-plugins-official | PR review automation |
+| `spec-kit@spec-kit` | github/spec-kit | Spec-driven development toolkit |
+| `superpowers@claude-plugins-official` | claude-plugins-official | Core superpowers (brainstorming, verification, planning, debugging) |
+| `swift-lsp@claude-plugins-official` | claude-plugins-official | Swift language server protocol integration |
+| `telegram@claude-plugins-official` | claude-plugins-official | Telegram messaging skill |
+| `slack@claude-plugins-official` | claude-plugins-official | Slack messaging and search skill |
+| `vercel@claude-plugins-official` | claude-plugins-official | Vercel deploy, env, status skill |
+
+### Disabled (`false`)
+
+| Plugin Key | Reason (inferred) |
+|------------|------------------|
+| `context7@claude-plugins-official` | Replaced by the direct `mcp__context7__` MCP server — the skill wrapper is redundant |
+
+---
+
+## 8. Extra Known Marketplaces (`extraKnownMarketplaces`)
+
+Custom plugin registries beyond the default Claude Code marketplace:
+
+| Marketplace ID | GitHub Repo | What it provides |
+|----------------|-------------|-----------------|
+| `anthropic-agent-skills` | `anthropics/skills` | Official Anthropic agent skills (pdf, etc.) |
+| `claude-plugins-official` | `anthropics/claude-plugins-official` | Official Claude Code plugin library (superpowers, figma, vercel, etc.) |
+| `context-engineering-marketplace` | `muratcankoylan/agent-skills-for-context-engineering` | Context engineering patterns, BDI mental states, memory systems |
+| `interface-design` | `Dammyjay93/interface-design` | Interface design skills (not currently enabled) |
+| `sequenzia` | `sequenzia/agent-alchemy` | Agent Alchemy suite (claude-tools, dev-tools, git-tools, sdd, tdd) |
+| `spec-kit` | `github/spec-kit` | GitHub's spec-driven development toolkit |
+| `superpowers-marketplace` | `obra/superpowers-marketplace` | Community superpowers marketplace |
+| `thedotmack` | `thedotmack/claude-mem` | claude-mem session memory plugin |
+
+---
+
+## 9. `settings.local.json` — Local Overrides
+
+This file adds permissions and MCP configuration specific to the local machine (not committed to any project repo).
+
+### Extra Allowed Permissions
+
+```json
+"permissions": {
+  "allow": [
+    "mcp__next-devtools__browser_eval",
+    "Bash(gh auth:*)",
+    "Bash(pip3 show:*)",
+    "Bash(pip3 install:*)",
+    "mcp__github__create_repository",
+    "Bash(git clone:*)",
+    "Bash(git -C /Users/nikolassapalidis/helpmarq-landing-page remote -v)",
+    "Bash(.venv/bin/pip install:*)",
+    "Bash(.venv/bin/jupyter notebook:*)"
+  ]
+}
+```
+
+| Permission | Purpose |
+|-----------|---------|
+| `mcp__next-devtools__browser_eval` | Allows Next.js DevTools browser evaluation — auto-approved |
+| `Bash(gh auth:*)` | GitHub CLI auth commands |
+| `Bash(pip3 show:*)` | Show installed pip packages |
+| `Bash(pip3 install:*)` | Install pip packages |
+| `mcp__github__create_repository` | Create GitHub repositories via MCP |
+| `Bash(git clone:*)` | Clone git repositories |
+| `Bash(git -C /Users/.../helpmarq-landing-page remote -v)` | Check remotes in the helpmarq project specifically |
+| `Bash(.venv/bin/pip install:*)` | Install into local virtualenv |
+| `Bash(.venv/bin/jupyter notebook:*)` | Launch Jupyter notebooks from local venv |
+
+### Additional Flags
+
+```json
+"enableAllProjectMcpServers": true
+```
+Automatically enables all MCP servers defined in project-level `.claude/mcp.json` files without needing individual approval.
+
+### Enabled MCP JSON Servers
+
+```json
+"enabledMcpjsonServers": [
+  "memory",
+  "notion",
+  "figma",
+  "miro"
+]
+```
+These four MCP servers from the system-level `mcp.json` (or Claude's default registry) are activated for local sessions.
+
+---
+
+## 10. `mcp.json` — Custom MCP Server Definitions
+
+One custom MCP server is registered:
+
+### `memory-system`
+
+```json
+"memory-system": {
+  "command": "/Users/nikolassapalidis/memory-system/.venv/bin/python",
+  "args": ["/Users/nikolassapalidis/memory-system/mcp/memory_server.py"],
+  "cwd": "/Users/nikolassapalidis/memory-system"
+}
+```
+
+| Field | Value |
+|-------|-------|
+| Runtime | Python via local virtualenv at `~/memory-system/.venv` |
+| Entry point | `~/memory-system/mcp/memory_server.py` |
+| Working directory | `~/memory-system` |
+| Purpose | Custom memory system MCP — exposes tools like `search_pinecone`, `search_wiki`, `update_wiki_page`, `ingest_file`, `ingest_url`, `get_log`, `run_health_check` (as seen in `mcp__memory-system__*` tools in the deferred tool list) |
+
+This is a locally-hosted MCP server running a custom Python memory backend, likely backed by Pinecone (vector search) + a wiki system.
+
+---
+
+## Summary
+
+| Area | Key Choices |
+|------|------------|
+| Permission model | `bypassPermissions` — Claude acts freely; destructive ops (rm, force push, DROP TABLE, dd) require confirmation |
+| Agent model | Sonnet for subagents via env var; Opus reserved for `advisor()` calls |
+| Auto-memory | Disabled — manual memory via claude-mem, knowledge graph, Obsidian vault |
+| Hooks | 3 macOS notification sounds (Glass/Ping/Basso) for Stop/Notification/StopFailure; 2 PreToolUse hooks enforcing lean-ctx at the harness level |
+| Plugins | 23 enabled across 5 marketplaces; context7 plugin disabled (MCP used directly) |
+| Custom MCPs | 1 local Python memory-system server (Pinecone + wiki backend) |
+| Status line | Custom shell script drives the CLI status bar |

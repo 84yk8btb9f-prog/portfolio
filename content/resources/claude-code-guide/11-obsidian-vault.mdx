@@ -1,0 +1,264 @@
+---
+title: "11 — Obsidian Vault"
+date: "2026-04-16"
+description: "Vault layout, _context/ canon docs, and using lean-ctx instead of MCP."
+order: 11
+tags: ["claude-code", "guide"]
+---
+
+Vault root: `/Users/nikolassapalidis/MyVault/`
+
+---
+
+## Vault Structure
+
+```
+MyVault/
+├── CLAUDE.md                    ← Claude's working memory (auto-updated each /wrap-up)
+├── index.md                     ← Second brain home / nav hub
+├── Writings/                    ← Essays, social posts, newsletters
+│   ├── drafts/
+│   └── published/
+├── 01-Areas/                    ← Ongoing responsibilities (never "done")
+│   ├── _context/                ← Canonical business docs — load before any content/copy work
+│   │   ├── brand-voice.md
+│   │   ├── icp.md
+│   │   ├── positioning.md
+│   │   └── products.md
+│   ├── marketing-growth.md      ← Copywriting, ads, landing pages, funnels
+│   ├── dev-infrastructure.md   ← Claude Code, skills, hooks, MCP, automation
+│   ├── products.md              ← Active product tracker
+│   └── content-writing.md      ← Essays, social, newsletters
+├── 02-Projects/                 ← Active projects with defined end state
+│   ├── Claude Sessions/         ← 140+ session auto-saves (UUID + date-named)
+│   ├── marketmyapp/             ← index.md, BACKLOG.md, Ideas.md, Handoffs/
+│   ├── creator-roast/           ← index.md, BACKLOG.md
+│   ├── swipefile-automation/    ← index.md, BACKLOG.md
+│   ├── helpmarq-landing-page/   ← index.md, BACKLOG.md
+│   ├── ai-marketing-plan/       ← spec.md
+│   └── index.md
+├── 03-Resources/
+│   ├── Concepts/ → symlink      ← Auto-synced from claude-memory-compiler/knowledge/concepts
+│   ├── Connections/ → symlink   ← Auto-synced from claude-memory-compiler/knowledge/connections
+│   └── Raw/                     ← Unprocessed reference material
+├── 04-Archives/                 ← Completed/paused work
+├── 05-Daily-Logs/ → symlink     ← Auto-synced from claude-memory-compiler/daily
+├── concepts/                    ← claude-code-session-architecture.md (and others)
+└── daily/                       ← Raw daily knowledge log output
+```
+
+**Project folder template:**
+```
+02-Projects/project-name/
+├── index.md          ← overview + wikilinks
+├── Execution-Plan.md ← phases, tasks, dependencies
+├── BACKLOG.md        ← Kanban (To Do / In Progress / Done)
+└── Handoffs/         ← per-session end notes
+```
+
+---
+
+## Canonical Business Context (`01-Areas/_context/`)
+
+Load these before ANY content, copy, or marketing work. They are the single source of truth.
+
+### Brand Voice (`brand-voice.md`)
+
+**Personality:** Direct, confident, slightly provocative, conversational, educational, premium — all mixed. Sound like a smart founder talking to another smart founder.
+
+**Tone:** Polished enough to be taken seriously. Raw enough to feel real. Like a well-edited voice note — not a PR statement, not a Twitter rant.
+
+**Use:** Short punchy sentences. Dry humour (occasional). Conversational but not sloppy.
+
+**Words to use:** "honest", "specific", "actionable", "real", "actual", "without the [noise/fluff]", short imperatives.
+
+**Words to avoid:** "leverage", "utilize", "synergy", "game-changer", "revolutionary", "we believe", trailing qualifiers.
+
+**Good example:**
+> "Submit your creator profile. Get roasted. Fix what's broken."
+
+**Bad example:**
+> "We're leveraging AI to revolutionize how creators get feedback on their journey!"
+
+---
+
+### ICP (`icp.md`)
+
+**Who:** Indie hacker, solo founder, builder-marketer hybrid. Medium-to-high technical level. Post-MVP, has something real, doesn't know what to do with it.
+
+**Goal:** Ship something that gets traction — paying users, audience, proof it's not a waste of time.
+
+**Top pain points:**
+1. Can't market their product — good at building, bad at positioning
+2. Wasting time on manual tasks that should be automated
+3. No honest signal on quality — friends say "looks great", strangers say nothing
+4. Overwhelmed, no system — context dies between sessions
+
+**How they talk:** "I just need someone to tell me what's actually wrong." / "I keep starting over every session."
+
+**Where to find them:** X (building in public), Indie Hackers, Hacker News, Product Hunt, Discord (Buildspace, MakerPad).
+
+---
+
+### Positioning (`positioning.md`)
+
+**One-liner:** Tools that give indie founders honest, actionable clarity — no fluff, no polite noise, no wasted time.
+
+**Category:** Honest feedback + automation tools for solo founders. At the intersection of "things that tell you the truth" and "things that run without you."
+
+**Core differentiator:** Honesty + specificity. The market tells founders what they want to hear. The positioning: tell them what's actually wrong, with enough specificity to act on immediately.
+
+| Product | Positioning Angle |
+|---|---|
+| Helpmarq | Not polite opinions. Not forum noise. Real feedback. |
+| creator-roast | Submit your profile. Get roasted. Fix what's broken. |
+| swipefile-automation | Your swipe file runs itself. |
+| marketmyapp | Find out if your marketing is broken before your launch does. |
+
+---
+
+### Products (`products.md`)
+
+| Product | Tagline | Stack | Status |
+|---|---|---|---|
+| **Helpmarq** | "Get honest project feedback in 48 hours. Free." | HTML/CSS/JS (static) | Active — landing page live |
+| **creator-roast** | "Submit your profile. Get roasted. Fix what's broken." | Next.js, TypeScript, Tailwind, Supabase, Vercel | Active |
+| **marketmyapp** | "Find out if your marketing is broken before your launch does." | Next.js, TypeScript, Supabase, Stripe, Resend, Groq API, Vercel | Phase 2 — Deploy & Validate |
+| **swipefile-automation** | "Your swipe file builds itself." | Python, GitHub Actions | Active |
+| **PadelUp** | iOS padel app (client work) | Swift | Active development |
+
+---
+
+## Areas
+
+| Area | File | Covers |
+|---|---|---|
+| Marketing & Growth | `01-Areas/marketing-growth.md` | Copywriting, paid ads, landing pages, funnels. Frameworks: start-with-why, identity-driven-positioning, landing-page-copy-structure. |
+| Dev Infrastructure | `01-Areas/dev-infrastructure.md` | Claude Code system, skills/hooks/agents, MCP integrations, n8n automation. Patterns: hook configuration, self-contained components, cold-start debugging. |
+| Products | `01-Areas/products.md` | Active product tracker linking to project indexes. Principles: ship then iterate, validate before building more. |
+| Content & Writing | `01-Areas/content-writing.md` | LinkedIn carousels, X threads, newsletters, essays. Lives in `Writings/`. |
+
+---
+
+## Active Projects
+
+### marketmyapp
+- **Status:** Phase 2 — Deploy & Validate (MVP complete, 16 commits, two-stage reviewed)
+- **Stack:** Next.js 16.2.2, TypeScript, Supabase, Stripe, Resend, Groq API, Vercel
+- **Key arch:** Groq for AI generation (kimi-k2-instruct → gpt-oss-120b → qwen3-32b), Supabase SSR, Stripe 7-day trial, Resend lifecycle emails, PDF export via `@react-pdf/renderer`
+- **Next:** Deploy to Vercel, smoke test full user flow, add `CRON_SECRET` + `GROQ_API_KEY`
+- **Handoff:** `02-Projects/marketmyapp/Handoffs/2026-04-16.md`
+
+### creator-roast
+- **Status:** Active
+- **Stack:** Next.js, TypeScript, Tailwind, Supabase, Vercel
+- **What it does:** AI audit + roast of creator profile (LinkedIn, social) — returns actionable feedback + shareable card
+
+### swipefile-automation
+- **Status:** Active
+- **Stack:** Python, GitHub Actions, scheduled tasks
+- **What it does:** Daily scheduled scraper — collects viral content into `master-swipefile.md` automatically
+
+### helpmarq-landing-page
+- **Status:** Active
+- **Stack:** HTML, CSS, JavaScript (static)
+- **What it does:** Landing page for Helpmarq. Recent: fixed Google Search Console structured data validation (Review schema)
+
+### ai-marketing-plan (spec stage)
+- **Status:** Spec approved, not yet built
+- **What it is:** SaaS — founders answer 8 wizard questions, get full marketing plan (strategy doc + 30-day calendar + action checklist) via multi-agent AI pipeline (intake → parallel specialists → assembly)
+- **Stack planned:** Next.js, TypeScript, Tailwind, shadcn/ui, Supabase, Claude Sonnet/Haiku, Vercel
+
+---
+
+## Knowledge Capture Flow
+
+Fully automatic — zero manual effort required.
+
+```
+Session ends
+     │
+     ▼
+SessionEnd hook → flush.py
+     │  Extracts concepts + connections from session transcript
+     ▼
+daily/YYYY-MM-DD.md  (raw daily log)
+     │
+     ▼  (after 6 PM — compile.py runs)
+knowledge/concepts/  +  knowledge/connections/
+     │
+     ▼  (symlinks)
+03-Resources/Concepts/  ←→  Obsidian
+03-Resources/Connections/ ←→ Obsidian
+05-Daily-Logs/           ←→ Obsidian (symlink to daily/)
+     │
+     ▼
+auto-session-save.sh
+     Writes session handoff → 02-Projects/Claude Sessions/YYYY-MM-DD-[slug].md
+     │
+     ▼  (next session)
+SessionStart hook
+     Injects knowledge index into context automatically
+```
+
+**Knowledge base as of last update:** 29 concepts + 5 connections across marketing/copywriting, dev/infrastructure, and automation/APIs categories.
+
+---
+
+## Note Conventions
+
+**Wikilinks:** `[[note-slug]]` — filename without `.md` extension. Used for all internal links.
+
+**YAML frontmatter:** Required on every note. Standard fields:
+```yaml
+---
+title: Note Title
+type: context | area | project | spec | concept
+status: active | paused | archived
+updated: YYYY-MM-DD
+tags: [tag1, tag2]
+---
+```
+
+**Project @-imports in CLAUDE.md** (auto-load context at session start):
+```markdown
+@~/MyVault/01-Areas/_context/brand-voice.md
+@~/MyVault/01-Areas/_context/icp.md
+@~/MyVault/02-Projects/[project]/index.md
+```
+
+---
+
+## Session Rituals
+
+### `/resume`
+Reads `CLAUDE.md` + latest session handoff + active project indexes. Returns precise current status — what's done, what's next, what to open.
+
+### `/wrap-up`
+- Summarizes the session
+- Updates `CLAUDE.md` → "Current State & Handoffs" section
+- Creates handoff note in `02-Projects/Claude Sessions/`
+- Links new files created during session
+
+---
+
+## Tool Routing — Critical Rule
+
+| Task | Use | Never Use |
+|---|---|---|
+| Search vault by keyword | `ctx_search(pattern, "/Users/nikolassapalidis/MyVault")` | `mcp__obsidian__` |
+| Read a vault note | `ctx_read("/Users/nikolassapalidis/MyVault/path/to/note.md")` | `mcp__obsidian__` |
+| Map vault structure | `ctx_tree("/Users/nikolassapalidis/MyVault", depth)` | `ls` / `find` |
+| List area/project files | `ctx_tree("/Users/nikolassapalidis/MyVault/01-Areas", 2)` | `mcp__obsidian__` |
+
+**Why:** lean-ctx reads the same markdown files faster, with session caching and token compression. `mcp__obsidian__` is never used — lean-ctx is the mandatory tool for all vault access.
+
+---
+
+## Context Loading Order (Before Any Project Work)
+
+1. Check project `CLAUDE.md` for `@path` imports — if present, context is already loaded
+2. If not, `ctx_search` for the project/product name to find relevant notes
+3. Load `01-Areas/_context/` canonical docs (brand voice, ICP, positioning, products)
+4. Read `02-Projects/[project]/index.md` for current status
+5. Never ask the user for information that may already be in the vault — search first

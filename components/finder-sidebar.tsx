@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
-import type { ContentItem } from "@/lib/content";
+import type { ContentItem, ContentTree } from "@/lib/content";
 
 type Props = {
-  items: ContentItem[];
+  tree?: ContentTree;
+  items?: ContentItem[];
   section: string;
   label: string;
 };
@@ -37,9 +38,51 @@ function FileIcon({ className }: { className?: string }) {
   );
 }
 
-export function FinderSidebar({ items, section, label }: Props) {
+function FileRow({
+  href,
+  title,
+  active,
+  depth,
+}: {
+  href: string;
+  title: string;
+  active: boolean;
+  depth: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className={[
+        "flex items-center gap-1 py-[3px] pr-2 rounded select-none",
+        active
+          ? "bg-[#0064D2] text-white"
+          : "text-[#1d1d1f] hover:bg-black/[0.06]",
+      ].join(" ")}
+      style={{ paddingLeft: `${6 + depth * 14}px` }}
+    >
+      <span className="w-3 h-3 flex-none" />
+      <FileIcon className="w-4 h-4 flex-none" />
+      <span className="ml-1 text-[12px] truncate leading-none">{title}</span>
+    </Link>
+  );
+}
+
+export function FinderSidebar({ tree, items: flatItems, section, label }: Props) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(true);
+  const [rootOpen, setRootOpen] = useState(true);
+
+  // Normalize: if only `items` was passed (legacy), convert to tree shape
+  const resolved: ContentTree =
+    tree ??
+    ({
+      files: flatItems ?? [],
+      folders: [],
+    } as ContentTree);
+
+  const flatForMobile: ContentItem[] = [
+    ...resolved.files,
+    ...resolved.folders.flatMap((f) => f.items.filter((i) => i.slugParts[i.slugParts.length - 1] !== "index")),
+  ];
 
   return (
     <>
@@ -51,7 +94,7 @@ export function FinderSidebar({ items, section, label }: Props) {
             {label}
           </span>
         </div>
-        {items.map((item) => {
+        {flatForMobile.map((item) => {
           const href = `/${section}/${item.slug}`;
           const active = pathname === href;
           return (
@@ -78,10 +121,10 @@ export function FinderSidebar({ items, section, label }: Props) {
         <div
           className="flex items-center gap-1 py-[3px] pr-2 rounded cursor-pointer select-none text-[#1d1d1f] hover:bg-black/[0.06]"
           style={{ paddingLeft: "6px" }}
-          onClick={() => setOpen(!open)}
+          onClick={() => setRootOpen(!rootOpen)}
         >
           <span className="w-3 h-3 flex-none flex items-center justify-center">
-            {open ? (
+            {rootOpen ? (
               <ChevronDown size={9} className="text-[#86868b]" />
             ) : (
               <ChevronRight size={9} className="text-[#86868b]" />
@@ -91,32 +134,92 @@ export function FinderSidebar({ items, section, label }: Props) {
           <span className="ml-1 text-[12px] truncate leading-none">{label}</span>
         </div>
 
-        {/* File items */}
-        {open &&
-          items.map((item) => {
-            const href = `/${section}/${item.slug}`;
-            const active = pathname === href;
-            return (
-              <Link
-                key={item.slug}
-                href={href}
-                className={[
-                  "flex items-center gap-1 py-[3px] pr-2 rounded select-none",
-                  active
-                    ? "bg-[#0064D2] text-white"
-                    : "text-[#1d1d1f] hover:bg-black/[0.06]",
-                ].join(" ")}
-                style={{ paddingLeft: "20px" }}
-              >
-                <span className="w-3 h-3 flex-none" />
-                <FileIcon className="w-4 h-4 flex-none" />
-                <span className="ml-1 text-[12px] truncate leading-none">
-                  {item.title}
-                </span>
-              </Link>
-            );
-          })}
+        {rootOpen && (
+          <>
+            {/* Flat files at root */}
+            {resolved.files.map((item) => {
+              const href = `/${section}/${item.slug}`;
+              return (
+                <FileRow
+                  key={item.slug}
+                  href={href}
+                  title={item.title}
+                  active={pathname === href}
+                  depth={1}
+                />
+              );
+            })}
+
+            {/* Subfolders */}
+            {resolved.folders.map((folder) => (
+              <SubFolder
+                key={folder.slug}
+                section={section}
+                folder={folder}
+                pathname={pathname}
+              />
+            ))}
+          </>
+        )}
       </div>
     </>
+  );
+}
+
+function SubFolder({
+  section,
+  folder,
+  pathname,
+}: {
+  section: string;
+  folder: ContentTree["folders"][number];
+  pathname: string;
+}) {
+  const inside = pathname.startsWith(`/${section}/${folder.slug}`);
+  const [open, setOpen] = useState(inside);
+
+  const folderHref = `/${section}/${folder.slug}`;
+  const children = folder.items.filter(
+    (i) => i.slugParts[i.slugParts.length - 1] !== "index"
+  );
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-1 py-[3px] pr-2 rounded cursor-pointer select-none text-[#1d1d1f] hover:bg-black/[0.06]"
+        style={{ paddingLeft: "20px" }}
+        onClick={() => setOpen(!open)}
+      >
+        <span className="w-3 h-3 flex-none flex items-center justify-center">
+          {open ? (
+            <ChevronDown size={9} className="text-[#86868b]" />
+          ) : (
+            <ChevronRight size={9} className="text-[#86868b]" />
+          )}
+        </span>
+        <FolderIcon className="w-4 h-4 flex-none" />
+        <Link
+          href={folderHref}
+          onClick={(e) => e.stopPropagation()}
+          className="ml-1 text-[12px] truncate leading-none hover:underline"
+        >
+          {folder.title}
+        </Link>
+      </div>
+
+      {open &&
+        children.map((item) => {
+          const href = `/${section}/${item.slug}`;
+          return (
+            <FileRow
+              key={item.slug}
+              href={href}
+              title={item.title}
+              active={pathname === href}
+              depth={2}
+            />
+          );
+        })}
+    </div>
   );
 }

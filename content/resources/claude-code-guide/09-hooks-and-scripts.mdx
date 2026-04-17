@@ -1,0 +1,666 @@
+---
+title: "09 — Hooks & Scripts"
+date: "2026-04-16"
+description: "PreToolUse, PostToolUse, Stop — automate what you keep forgetting."
+order: 9
+tags: ["claude-code", "guide"]
+---
+
+This section documents every hook, utility script, and the status line command in Nikolas's Claude Code setup. Hooks fire automatically on Claude Code events; scripts are manual or scheduled utilities; the status line runs continuously in the terminal UI.
+
+---
+
+## 1. Hooks
+
+Hooks live in `~/.claude/hooks/`. They are wired into `~/.claude/settings.json` with a trigger event. Each hook receives JSON on stdin and can write to stdout to inject context or modify behavior.
+
+---
+
+### 1.1 `caveman-activate.js`
+
+**Path:** `~/.claude/hooks/caveman-activate.js`
+**Trigger event:** `SessionStart`
+**Language:** Node.js
+
+**What it does:**
+Activates "Caveman Lite" communication mode at session start. It:
+1. Writes the flag file `~/.claude/.caveman-active` with content `lite` — this lets the status line (or other tools) detect that caveman mode is loaded.
+2. Emits a ruleset reminder to stdout, which Claude Code injects as session context. The ruleset instructs Claude to drop filler/pleasantries/hedging and use short, direct language (pattern: `[problem] [cause] [solution]`).
+
+The flag file is best-effort — errors are silently ignored so the hook never blocks a session.
+
+**Input:** No stdin consumed (SessionStart hooks receive session metadata but this hook doesn't parse it)
+**Output:** Stdout string injected as session context
+**Dependencies:** Node.js built-ins (`fs`, `path`, `os`)
+
+```js
+#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const flagPath = path.join(os.homedir(), '.claude', '.caveman-active');
+
+try {
+  fs.mkdirSync(path.dirname(flagPath), { recursive: true });
+  fs.writeFileSync(flagPath, 'lite');
+} catch (e) {}
+
+process.stdout.write(
+  "CAVEMAN LITE MODE ACTIVE. Rules: Drop filler/pleasantries/hedging. " +
+  "Keep grammar/clarity. Short direct language. Pattern: [problem] [cause] [solution]. " +
+  "Not: 'I'd recommend using useMemo to memoize the object.' " +
+  "Yes: 'New object ref each render. Use useMemo.' " +
+  "Code/commits/security: write normal. " +
+  "User says '/caveman full', '/caveman ultra', 'normal', or 'stop caveman' to change."
+);
+```
+
+---
+
+### 1.2 `caveman-mode-tracker.js`
+
+**Path:** `~/.claude/hooks/caveman-mode-tracker.js`
+**Trigger event:** `UserPromptSubmit`
+**Language:** Node.js
+
+**What it does:**
+Reads every user prompt to detect `/caveman` slash commands and writes the current mode to `~/.claude/.caveman-active`. Supported modes:
+
+| Command | Mode written |
+|---|---|
+| `/caveman` | `full` |
+| `/caveman lite` | `lite` |
+| `/caveman ultra` | `ultra` |
+| `/caveman wenyan-lite` | `wenyan-lite` |
+| `/caveman wenyan` / `wenyan-full` | `wenyan` |
+| `/caveman wenyan-ultra` | `wenyan-ultra` |
+| `/caveman-commit` | `commit` |
+| `/caveman-review` | `review` |
+| `/caveman-compress` | `compress` |
+| `stop caveman` / `normal mode` | flag file deleted |
+
+**Input:** stdin JSON with `{ "prompt": "..." }`
+**Output:** None (side-effect: writes flag file)
+**Dependencies:** Node.js built-ins
+
+```js
+#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const flagPath = path.join(os.homedir(), '.claude', '.caveman-active');
+
+let input = '';
+process.stdin.on('data', chunk => { input += chunk; });
+process.stdin.on('end', () => {
+  try {
+    const data = JSON.parse(input);
+    const prompt = (data.prompt || '').trim().toLowerCase();
+
+    if (prompt.startsWith('/caveman')) {
+      const parts = prompt.split(/\s+/);
+      const cmd = parts[0];
+      const arg = parts[1] || '';
+      let mode = null;
+
+      if (cmd === '/caveman-commit') mode = 'commit';
+      else if (cmd === '/caveman-review') mode = 'review';
+      else if (cmd === '/caveman-compress' || cmd === '/caveman:caveman-compress') mode = 'compress';
+      else if (cmd === '/caveman' || cmd === '/caveman:caveman') {
+        if (arg === 'lite') mode = 'lite';
+        else if (arg === 'ultra') mode = 'ultra';
+        else if (arg === 'wenyan-lite') mode = 'wenyan-lite';
+        else if (arg === 'wenyan' || arg === 'wenyan-full') mode = 'wenyan';
+        else if (arg === 'wenyan-ultra') mode = 'wenyan-ultra';
+        else mode = 'full';
+      }
+
+      if (mode) {
+        fs.mkdirSync(path.dirname(flagPath), { recursive: true });
+        fs.writeFileSync(flagPath, mode);
+      }
+    }
+
+    if (/\b(stop caveman|normal mode)\b/i.test(prompt)) {
+      try { fs.unlinkSync(flagPath); } catch (e) {}
+    }
+  } catch (e) {}
+});
+```
+
+---
+
+### 1.3 `design-dna-inject.sh`
+
+**Path:** `~/.claude/hooks/design-dna-inject.sh`
+**Trigger event:** `PreToolUse` (on `Write` / `Edit` tool calls for frontend files)
+**Language:** Bash
+
+**What it does:**
+Reads the `file_path` from the incoming tool JSON. If the file extension matches `.tsx`, `.jsx`, `.css`, `.scss`, `.html`, `.svelte`, or `.vue`, it:
+1. Loads `~/.claude/rules/design-dna.md`
+2. Checks `~/.claude/projects/-Users-nikolassapalidis/memory/design_preferences.md` for accumulated user feedback
+3. Emits a context message: `"DESIGN DNA ACTIVE: Follow ~/.claude/rules/design-dna.md"` — with `"+ learned preferences in memory"` appended if preferences exist
+
+This ensures every frontend file write is preceded by design rule reminders injected into Claude's context.
+
+**Input:** stdin JSON with `{ "tool_input": { "file_path": "..." } }`
+**Output:** Stdout string injected as context
+**Dependencies:** `jq`, `cat`, `grep`
+
+```bash
+#!/bin/bash
+input=$(cat)
+filepath=$(echo "$input" | jq -r '.tool_input.file_path // ""')
+
+if echo "$filepath" | grep -qiE '\.(tsx|jsx|css|scss|html|svelte|vue)$'; then
+  rules=$(cat ~/.claude/rules/design-dna.md 2>/dev/null)
+  if [ -n "$rules" ]; then
+    prefs=$(cat ~/.claude/projects/-Users-nikolassapalidis/memory/design_preferences.md 2>/dev/null \
+      | grep -A999 "## Accumulated Feedback" | tail -n +2)
+    msg="DESIGN DNA ACTIVE: Follow ~/.claude/rules/design-dna.md"
+    if [ -n "$prefs" ] && [ "$(echo "$prefs" | grep -v '^$' | grep -v '^<!--')" ]; then
+      msg="$msg + learned preferences in memory"
+    fi
+    echo "$msg"
+  fi
+fi
+```
+
+---
+
+### 1.4 `lean-ctx-redirect.sh`
+
+**Path:** `~/.claude/hooks/lean-ctx-redirect.sh`
+**Trigger event:** `PreToolUse`
+**Language:** Bash
+
+**What it does:**
+A minimal pass-through hook — exits with code 0 immediately. All native tools (Read, Grep, ListFiles) are allowed through unchanged. The hook's comment explains the design decision: MCP instructions in the system prompt guide Claude to prefer `ctx_read`/`ctx_search`/`ctx_tree`; this hook does not block native tools because `Edit` requires a native `Read` first.
+
+**Note:** A compiled native binary version exists at `lean-ctx-redirect-native`. Both have `.lean-ctx.bak` backups indicating lean-ctx modified them.
+
+**Input:** stdin JSON (ignored)
+**Output:** None (exit 0 = allow)
+**Dependencies:** None
+
+```bash
+#!/usr/bin/env bash
+# lean-ctx PreToolUse hook — all native tools pass through
+# Read/Grep/ListFiles are allowed so Edit (which requires native Read) works.
+# The MCP instructions guide the AI to prefer ctx_read/ctx_search/ctx_tree.
+exit 0
+```
+
+---
+
+### 1.5 `lean-ctx-rewrite.sh`
+
+**Path:** `~/.claude/hooks/lean-ctx-rewrite.sh`
+**Trigger event:** `PreToolUse`
+**Language:** Bash
+
+**What it does:**
+Intercepts `Bash` tool calls and rewrites matching shell commands to route through `lean-ctx` for compressed output. Works by:
+1. Extracting `tool_name` and `command` from the incoming JSON
+2. Only acting when the tool is `Bash`
+3. Matching the command against a known list of output-heavy tools: `git`, `gh`, `cargo`, `npm`, `pnpm`, `yarn`, `docker`, `kubectl`, `pip`, `pip3`, `ruff`, `go`, `curl`, `grep`, `rg`, `find`, `cat`, `head`, `tail`, `ls`, `eslint`, `prettier`, `tsc`, `pytest`, `mypy`, `aws`, `helm`
+4. Rewriting matched commands as `lean-ctx -c "<original_command>"` and returning a `permissionDecision: "allow"` JSON with the updated command
+
+Commands that don't match or already start with `lean-ctx` pass through unchanged.
+
+**Note:** A compiled native binary version exists at `lean-ctx-rewrite-native`. Both have `.lean-ctx.bak` backups.
+
+**Input:** stdin JSON with `{ "tool_name": "Bash", "tool_input": { "command": "..." } }`
+**Output:** JSON with `hookSpecificOutput.permissionDecision = "allow"` and rewritten command, or `exit 0` to pass through
+**Dependencies:** `grep`, `sed`
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+LEAN_CTX_BIN="lean-ctx"
+INPUT=$(cat)
+TOOL=$(echo "$INPUT" | grep -oE '"tool_name":"([^"\\]|\\.)*"' | head -1 \
+  | sed 's/^"tool_name":"//;s/"$//' | sed 's/\\"/"/g;s/\\\\/\\/g')
+
+if [ "$TOOL" != "Bash" ] && [ "$TOOL" != "bash" ]; then
+  exit 0
+fi
+
+CMD=$(echo "$INPUT" | grep -oE '"command":"([^"\\]|\\.)*"' | head -1 \
+  | sed 's/^"command":"//;s/"$//' | sed 's/\\"/"/g;s/\\\\/\\/g')
+
+if [ -z "$CMD" ] || echo "$CMD" | grep -qE "^(lean-ctx |$LEAN_CTX_BIN )"; then
+  exit 0
+fi
+
+case "$CMD" in
+  git\ *|gh\ *|cargo\ *|npm\ *|pnpm\ *|yarn\ *|docker\ *|kubectl\ *|\
+  pip\ *|pip3\ *|ruff\ *|go\ *|curl\ *|grep\ *|rg\ *|find\ *|cat\ *|\
+  head\ *|tail\ *|ls\ *|ls|eslint*|prettier*|tsc*|pytest*|mypy*|\
+  aws\ *|helm\ *)
+    SHELL_ESC=$(printf '%s' "$CMD" | sed 's/\\/\\\\/g;s/"/\\"/g')
+    REWRITE="$LEAN_CTX_BIN -c \"$SHELL_ESC\""
+    JSON_CMD=$(printf '%s' "$REWRITE" | sed 's/\\/\\\\/g;s/"/\\"/g')
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"command":"%s"}}}' "$JSON_CMD"
+    ;;
+  *) exit 0 ;;
+esac
+```
+
+---
+
+### 1.6 `pre-commit.sh`
+
+**Path:** `~/.claude/hooks/pre-commit.sh`
+**Trigger event:** Git pre-commit hook (not a Claude Code hook — installed manually into `.git/hooks/pre-commit` or globally via `git config --global core.hooksPath ~/.claude/hooks/`)
+**Language:** Bash
+
+**What it does:**
+A security gate that runs before every git commit. Three checks:
+
+1. **Blocked filenames** — Rejects staged files matching patterns like `.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `id_rsa`, `credentials.json`, `service-account*.json`, `.aws/credentials`, `.npmrc`, `*.keystore`, `terraform.tfvars`
+2. **Secret patterns** — Scans staged file content via `git show ":$file"` for regex patterns: AWS access keys (`AKIA…`), OpenAI/Anthropic keys (`sk-…`), GitHub tokens (`ghp_`, `gho_`), Slack tokens (`xoxb-`, `xoxp-`), RSA/SSH private key headers, Apify API keys, Figma tokens
+3. **File size** — Warns (but allows) files over 2MB with a suggestion to use git-lfs
+
+**Exit behavior:**
+- `exit 1` (blocks commit) if any errors
+- `exit 0` (allows with warning) if only size warnings
+- `exit 0` (clean) if all checks pass
+
+**Bypass:** `git commit --no-verify` (use only when certain)
+
+**Input:** None (reads from `git diff --cached --name-only`)
+**Output:** Colored terminal output (red = blocked, yellow = warning, green = pass)
+**Dependencies:** `git`, `grep`, `wc`, standard bash
+
+```bash
+#!/usr/bin/env bash
+set -e
+
+RED='\033[0;31m'; YELLOW='\033[1;33m'; GREEN='\033[0;32m'; NC='\033[0m'
+
+BLOCKED_FILES=(".env" ".env.local" ".env.production" ".env.staging" ".env.development"
+  "*.pem" "*.key" "*.p12" "*.pfx" "id_rsa" "id_ed25519" "id_dsa"
+  "credentials.json" "service-account*.json" ".aws/credentials" ".npmrc"
+  "*.keystore" "*.jks" "terraform.tfvars" "*.tfvars")
+
+SECRET_PATTERNS=("AKIA[0-9A-Z]{16}" "sk-[a-zA-Z0-9]{32,}" "ghp_[a-zA-Z0-9]{36}"
+  "gho_[a-zA-Z0-9]{36}" "xoxb-[0-9]+-[0-9]+-[a-zA-Z0-9]+"
+  "xoxp-[0-9]+-[0-9]+-[0-9]+-[a-zA-Z0-9]+"
+  "-----BEGIN RSA PRIVATE KEY-----" "-----BEGIN OPENSSH PRIVATE KEY-----"
+  "-----BEGIN EC PRIVATE KEY-----" "apify_api_[a-zA-Z0-9]{32,}" "figd_[a-zA-Z0-9_-]{32,}")
+
+MAX_FILE_SIZE=2097152  # 2MB
+ERRORS=0; WARNINGS=0
+
+echo "🔒 Running security pre-commit checks..."
+# ... [checks run here — see full file for implementation]
+```
+
+---
+
+## 2. Scripts
+
+Scripts live in `~/.claude/scripts/`. They are either invoked manually, called from within Claude sessions, or intended for cron/scheduled use.
+
+---
+
+### 2.1 `auto-session-save.sh`
+
+**Path:** `~/.claude/scripts/auto-session-save.sh`
+**Trigger:** `Stop` hook (fires when Claude Code session ends)
+**Language:** Bash + embedded Python 3
+
+**What it does:**
+Automatically generates a session handoff Markdown file in `~/MyVault/02-Projects/Claude Sessions/`. On session end:
+1. Reads `session_id` from hook stdin JSON
+2. Finds the corresponding `.jsonl` transcript in `~/.claude/projects/`
+3. Parses the JSONL with Python to extract:
+   - Up to 8 distinct user requests (deduplicated)
+   - All file paths passed to `Edit` or `Write` tools
+   - Up to 6 key decision/action summaries from assistant text blocks
+4. Derives a topic slug from the first user message (first 5 words, lowercased)
+5. Writes a Markdown file named `YYYY-MM-DD-topic-slug.md`
+6. Skips saving if the session ID already exists in an existing file for that date
+
+**Output file format:**
+```
+# Session: Topic Slug — 2026-04-17 14:30
+**Session ID:** `abc123`
+
+## User Goals
+- …
+
+## Files Changed
+- `/path/to/file.ts`
+
+## Key Decisions / Actions
+- …
+
+## Concepts Applied / Learned
+_(fill in at /wrap-up)_
+```
+
+**Input:** stdin JSON with `{ "session_id": "..." }`
+**Output:** Writes Markdown to `~/MyVault/02-Projects/Claude Sessions/`; prints path to stdout
+**Dependencies:** `jq`, `python3`, `find`
+
+---
+
+### 2.2 `ci-monitor.sh`
+
+**Path:** `~/.claude/scripts/ci-monitor.sh`
+**Trigger:** Manual — run in background after creating a PR
+**Language:** Bash
+**Usage:** `bash ci-monitor.sh <pr_number> [repo]`
+
+**What it does:**
+Polls GitHub PR checks every 90 seconds for up to 30 minutes. Uses `gh pr checks` with JSON output and `jq` to classify checks by state. Fires macOS desktop notifications via `osascript`:
+
+| Condition | Notification | Sound |
+|---|---|---|
+| Start | "Watching CI for PR #N…" | Ping |
+| All failed | "CI Failed — PR #N" | Basso |
+| All passed | "CI Passed — PR #N" | Glass |
+| 30 min timeout | "CI Timeout — PR #N" | Sosumi |
+
+**Input:** CLI args `$1=pr_number`, `$2=repo (optional)`
+**Output:** macOS notifications via `osascript`
+**Dependencies:** `gh` CLI, `jq`, `osascript`
+
+```bash
+#!/usr/bin/env bash
+# Usage: bash ci-monitor.sh <pr_number> [repo]
+PR_NUMBER="${1:-}"; REPO="${2:-}"
+MAX_WAIT=1800; POLL_INTERVAL=90; ELAPSED=0
+# ... polls gh pr checks every 90s, fires osascript notifications
+```
+
+---
+
+### 2.3 `fact-check-claude-md.sh`
+
+**Path:** `~/.claude/scripts/fact-check-claude-md.sh`
+**Trigger:** Manual or weekly cron
+**Language:** Bash
+
+**What it does:**
+Validates `~/.claude/CLAUDE.md` for staleness and broken references. Three phases:
+1. **Broken file references** — finds all `@~/...` import paths and checks if they exist on disk
+2. **Missing skills** — finds all `` `plugin:skill` `` patterns and checks them against `~/.claude/skills/` and `~/.claude/plugins/cache/`
+3. **Claude AI review** — passes the full CLAUDE.md content plus mechanical findings to `claude -p` with a structured prompt asking for: broken references, stale instructions, conflicts, suggestions
+
+Writes a Markdown report to `~/.claude/logs/fact-check-YYYY-MM-DD.md`. If findings exist, fires an `osascript` notification: _"CLAUDE.md may have stale entries"_.
+
+**Input:** None (reads `~/.claude/CLAUDE.md` directly)
+**Output:** `~/.claude/logs/fact-check-YYYY-MM-DD.md` + optional macOS notification
+**Dependencies:** `jq`, `grep`, `ls`, `claude` CLI, `osascript`
+
+---
+
+### 2.4 `permissions-counter.sh`
+
+**Path:** `~/.claude/scripts/permissions-counter.sh`
+**Trigger:** Notification hook (fires on permission prompt events)
+**Language:** Bash
+
+**What it does:**
+Tracks how many permission prompts have occurred in the current session using a temp counter file at `/tmp/perm_count_<session_id>`. When the count reaches exactly 5, it outputs a suggestion to run `/permissions-analyzer`. Only suggests once (at count=5, not on subsequent prompts).
+
+**Input:** stdin JSON with `{ "session_id": "..." }`
+**Output:** Suggestion message printed to stdout (injected into Claude's context)
+**Dependencies:** `jq`
+
+```bash
+#!/usr/bin/env bash
+INPUT=$(cat)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
+COUNTER_FILE="/tmp/perm_count_${SESSION_ID}"
+
+COUNT=1
+if [ -f "$COUNTER_FILE" ]; then
+  COUNT=$(( $(cat "$COUNTER_FILE") + 1 ))
+fi
+echo "$COUNT" > "$COUNTER_FILE"
+
+if [ "$COUNT" -eq 5 ]; then
+  echo ""
+  echo "💡 You've hit 5 permission prompts this session."
+  echo "   Run /permissions-analyzer to scan your session history and auto-approve safe commands."
+fi
+```
+
+---
+
+### 2.5 `pr-gate.sh`
+
+**Path:** `~/.claude/scripts/pr-gate.sh`
+**Trigger:** `PreToolUse` hook — fires when Claude attempts to run `gh pr create`
+**Language:** Bash
+
+**What it does:**
+Enforces that PRs are always created through the `/create-pr` skill rather than raw `gh pr create`. Checks for a sentinel file at `/tmp/create_pr_ok_<session_id>` (written by the `/create-pr` skill when it's running). If the sentinel exists, allows through. If not, blocks with a JSON `permissionDecision: "block"` and message explaining to use `/create-pr` instead.
+
+**Input:** stdin JSON with `{ "session_id": "..." }`
+**Output:** JSON block response or `exit 0`
+**Dependencies:** `jq`
+
+```bash
+#!/usr/bin/env bash
+INPUT=$(cat)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
+SENTINEL="/tmp/create_pr_ok_${SESSION_ID}"
+
+if [ -f "$SENTINEL" ]; then exit 0; fi
+
+jq -n '{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "block",
+    "permissionDecisionReason": "Use /create-pr instead of raw `gh pr create`. It captures business intent, runs code review, and starts CI monitoring."
+  }
+}'
+```
+
+---
+
+### 2.6 `session-gap-analyzer.sh`
+
+**Path:** `~/.claude/scripts/session-gap-analyzer.sh`
+**Trigger:** `Stop` hook (fires at session end)
+**Language:** Bash + Python 3
+
+**What it does:**
+Analyzes session transcripts for quality gaps where Claude underperformed. On session end:
+1. Locates the session transcript JSONL (from hook input or by finding the most recently modified `.jsonl` in `~/.claude/projects/`)
+2. Extracts the last ~120 user+assistant text turns
+3. Sends to `claude -p` with a classification prompt asking for gaps in these categories:
+   - `missing_skill` — Claude lacked a workflow for a request
+   - `missing_tool` — A CLI tool was unavailable
+   - `repeated_failure` — Same approach attempted 3+ times
+   - `wrong_info` — Factually incorrect output
+   - `unclear_instruction` — Task abandoned due to ambiguity
+4. Parses the JSON array response, appends findings to `~/.claude/logs/gap-analysis.md`
+5. If gaps found, fires an `osascript` notification
+
+**Input:** stdin JSON with `{ "session_id": "...", "transcript_path": "..." }`
+**Output:** Appends to `~/.claude/logs/gap-analysis.md`; macOS notification if gaps found
+**Dependencies:** `jq`, `python3`, `claude` CLI, `osascript`, `tail`, `find`
+
+---
+
+### 2.7 `tool-label.sh`
+
+**Path:** `~/.claude/scripts/tool-label.sh`
+**Trigger:** `PreToolUse` hook — for Skill, Agent, and MCP invocations
+**Language:** Bash
+**Usage:** `echo '<hook-json>' | tool-label.sh <skill|agent|mcp>`
+
+**What it does:**
+Generates color-coded ANSI terminal labels shown in the Claude Code TUI whenever a skill, agent, or MCP tool is invoked. Returns a `{ "systemMessage": "..." }` JSON response with embedded ANSI escape codes.
+
+**Color mapping (256-color):**
+
+| Color | Code | Categories |
+|---|---|---|
+| Orange | 208 | Content, creative, marketing skills |
+| Blue | 39 | Dev, code, engineering skills |
+| Cyan | 51 | Design, UI, visual skills; playwright MCP |
+| Purple | 135 | Research, analysis, memory skills; memory/obsidian MCPs |
+| Green | 82 | Process, orchestration, deploy agents/skills; telegram MCP |
+| Yellow | 226 | SEO, growth, CRO skills; context7 MCP; build agents |
+| Pink | 213 | Productivity, file tools |
+| Red | 196 | Security agents |
+| White | 255 | Default/unmatched |
+
+**Label format:**
+- Skill: `[SKILL] skill-name`
+- Agent: `[AGENT] first four words of description`
+- MCP: `[TOOLNAME] operation-name` (e.g., `[CONTEXT7] query-docs`)
+
+**Input:** stdin JSON; arg `$1` = `skill|agent|mcp`
+**Output:** `{ "systemMessage": "<ANSI-colored label>" }` JSON
+**Dependencies:** `jq`, `awk`, `sed`, `printf`
+
+---
+
+### 2.8 `tool-miss-detector.sh`
+
+**Path:** `~/.claude/scripts/tool-miss-detector.sh`
+**Trigger:** `PostToolUse` hook — fires after every Bash tool execution
+**Language:** Bash
+
+**What it does:**
+Scans Bash tool output for two failure modes and suggests fixes:
+
+1. **"command not found"** — Extracts the missing command name, suggests `brew install <command>`
+2. **BSD/GNU incompatibilities** — Detects `illegal option`, `invalid option --`, or `unrecognized option` errors and maps them to the correct `brew install` fix per command:
+   - `grep` → `brew install grep` (use `ggrep`)
+   - `sed` → `brew install gnu-sed` (use `gsed`)
+   - `awk` → `brew install gawk`
+   - `find`/`xargs` → `brew install findutils`
+   - `date` → `brew install coreutils`
+
+Uses a per-session dedup file at `/tmp/tool_miss_<session_id>` to flag each missing command only once per session.
+
+**Input:** stdin JSON with `{ "tool_name": "...", "tool_response": "...", "session_id": "..." }`
+**Output:** Warning message printed to stdout (injected into Claude's context)
+**Dependencies:** `jq`, `grep`, `sed`, `awk`
+
+```bash
+#!/usr/bin/env bash
+# PostToolUse — detects missing tools and BSD/GNU incompatibilities
+# Suggests brew install once per session, skips if already flagged
+# Only acts on Bash tool responses
+```
+
+---
+
+## 3. Status Line
+
+### `statusline-command.sh`
+
+**Path:** `~/.claude/statusline-command.sh`
+**Trigger:** Configured as the `statusCommand` in `~/.claude/settings.json`; Claude Code runs it continuously to render the bottom status bar
+**Language:** POSIX sh
+
+**What it does:**
+Reads Claude Code's context window JSON on stdin and renders a two-part status bar:
+
+```
+ctx ████████░░ 80% | tok ███░░░░░░░ 42.3k
+```
+
+- **`ctx` bar** — 10-block bar showing `context_window.used_percentage` (how full the active context window is)
+- **`tok` bar** — 10-block bar showing cumulative session tokens (`total_input_tokens + total_output_tokens`) as a fraction of `context_window_size`; displays human-readable count (`42.3k`, `1.2m`, etc.)
+
+Falls back to `ctx -- | tok --` if no data is available.
+
+**Bar character:** `█` for filled blocks, `░` for empty blocks. Bar length is always 10.
+
+**Input:** stdin JSON with `{ "context_window": { "used_percentage": 80, "total_input_tokens": 40000, "total_output_tokens": 5000, "context_window_size": 100000 } }`
+**Output:** Single-line string printed to stdout
+**Dependencies:** `jq`, `bc`, `awk`
+
+```sh
+#!/bin/sh
+input=$(cat)
+
+make_bar() {
+  pct="$1"
+  filled=$(printf "%.0f" "$(echo "$pct * 10 / 100" | bc -l)")
+  [ "$filled" -gt 10 ] && filled=10
+  empty=$((10 - filled))
+  bar=""
+  i=0
+  while [ $i -lt $filled ]; do bar="${bar}█"; i=$((i + 1)); done
+  i=0
+  while [ $i -lt $empty ]; do bar="${bar}░"; i=$((i + 1)); done
+  printf "%s" "$bar"
+}
+
+used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+if [ -z "$used_pct" ]; then echo "ctx -- | tok --"; exit 0; fi
+
+ctx_bar=$(make_bar "$used_pct")
+ctx_int=$(printf "%.0f" "$used_pct")
+
+total_in=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+total_out=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+session_tokens=$(( total_in + total_out ))
+window_size=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
+
+if [ -n "$session_tokens" ] && [ -n "$window_size" ] && [ "$window_size" -gt 0 ]; then
+  tok_pct=$(echo "$session_tokens $window_size" | awk '{printf "%.4f", $1 / $2 * 100}')
+  tok_bar=$(make_bar "$tok_pct")
+  tok_fmt=$(echo "$session_tokens" | awk '{
+    if ($1 >= 1000000) printf "%.1fm", $1/1000000
+    else if ($1 >= 1000) printf "%.1fk", $1/1000
+    else printf "%d", $1
+  }')
+  printf "ctx %s %d%% | tok %s %s" "$ctx_bar" "$ctx_int" "$tok_bar" "$tok_fmt"
+else
+  printf "ctx %s %d%% | tok --" "$ctx_bar" "$ctx_int"
+fi
+```
+
+---
+
+## 4. Backup Files (`.lean-ctx.bak`)
+
+lean-ctx modified four files in `~/.claude/hooks/`, creating `.lean-ctx.bak` backups of the originals:
+
+| Backup file | Indicates |
+|---|---|
+| `lean-ctx-redirect.sh.lean-ctx.bak` | `lean-ctx-redirect.sh` was rewritten by lean-ctx |
+| `lean-ctx-redirect-native.lean-ctx.bak` | Native binary was replaced/updated |
+| `lean-ctx-rewrite.sh.lean-ctx.bak` | `lean-ctx-rewrite.sh` was rewritten by lean-ctx |
+| `lean-ctx-rewrite-native.lean-ctx.bak` | Native binary was replaced/updated |
+
+Additionally, `~/.claude/CLAUDE.md.lean-ctx.bak` and `~/.claude/settings.json.lean-ctx.bak` exist — lean-ctx also modified the main CLAUDE.md and settings.json files. No scripts in `~/.claude/scripts/` have backups, meaning lean-ctx did not touch them.
+
+---
+
+## Quick Reference
+
+| File | Type | Event |
+|---|---|---|
+| `caveman-activate.js` | Hook | `SessionStart` |
+| `caveman-mode-tracker.js` | Hook | `UserPromptSubmit` |
+| `design-dna-inject.sh` | Hook | `PreToolUse` (frontend file writes) |
+| `lean-ctx-redirect.sh` | Hook | `PreToolUse` (pass-through) |
+| `lean-ctx-rewrite.sh` | Hook | `PreToolUse` (rewrites Bash to lean-ctx) |
+| `pre-commit.sh` | Git hook | Pre-commit (manual install) |
+| `auto-session-save.sh` | Script | `Stop` hook |
+| `ci-monitor.sh` | Script | Manual (background) |
+| `fact-check-claude-md.sh` | Script | Manual / cron (weekly) |
+| `permissions-counter.sh` | Script | Notification hook |
+| `pr-gate.sh` | Script | `PreToolUse` (`gh pr create`) |
+| `session-gap-analyzer.sh` | Script | `Stop` hook |
+| `tool-label.sh` | Script | `PreToolUse` (Skills/Agents/MCPs) |
+| `tool-miss-detector.sh` | Script | `PostToolUse` (Bash) |
+| `statusline-command.sh` | Status line | Continuous (`statusCommand`) |

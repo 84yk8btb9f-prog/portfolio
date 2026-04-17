@@ -1,0 +1,420 @@
+---
+title: "07 — Slash Commands"
+date: "2026-04-16"
+description: "Slash commands in ~/.claude/commands/ — wrappers for repeatable workflows."
+order: 7
+tags: ["claude-code", "guide"]
+---
+
+All commands live in `~/.claude/commands/`. Each `.md` file defines a slash command Claude Code can invoke. Commands use `$ARGUMENTS` to receive parameters.
+
+---
+
+## 1. Workflow Orchestration
+
+### `/plan`
+**Description:** Restate requirements, assess risks, and create a step-by-step implementation plan. Waits for user confirmation before touching any code.  
+**What it does:** Invokes the `planner` agent. Analyzes the request, breaks it into phased steps, identifies dependencies, estimates complexity (High/Medium/Low), and presents the plan. **Does not write code until you confirm.**  
+**Key steps:** Restate requirements → Identify risks → Break into phases → Present plan → Wait for "yes/proceed"  
+**Use case:** Starting any new feature, significant refactor, or multi-file change.  
+**Dependencies:** `planner` agent; pairs with `/tdd`, `/build-fix`, `/code-review` after confirmation.
+
+---
+
+### `/orchestrate`
+**Description:** Sequential and tmux/worktree orchestration guidance for multi-agent workflows.  
+**What it does:** Routes tasks through a chain of specialist agents with structured handoff documents between each. Supports four workflow types: `feature`, `bugfix`, `refactor`, `security`. Optionally runs agents in parallel for independent checks. Can drive external tmux/worktree orchestration via `scripts/orchestrate-worktrees.js`.  
+**Key steps:** Select workflow type → Invoke agent chain → Pass structured handoff docs → Aggregate into final report  
+**Use case:** Full feature shipping (planner → tdd → reviewer → security) or bug investigation pipelines.  
+**Dependencies:** `planner`, `tdd-guide`, `code-reviewer`, `security-reviewer` agents.
+
+---
+
+### `/verify`
+**Description:** Run comprehensive verification on the current codebase state.  
+**What it does:** Runs build check → type check → lint → test suite → console.log audit → git status, then outputs a concise `VERIFICATION: PASS/FAIL` scorecard.  
+**Key steps:** Build → Types → Lint → Tests → Secrets/console.log scan → Git status → Report  
+**Use case:** Pre-commit or pre-PR sanity check; called automatically by `/orchestrate`.  
+**Arguments:** `quick` (build+types only), `full` (default), `pre-commit`, `pre-pr`.
+
+---
+
+### `/run-pipeline`
+**Description:** Runs the full Cogenly lead pipeline: scrape Instagram hashtags → score with Claude → push to Notion.  
+**What it does:** Executes `run.sh` in `/Users/nikolassapalidis/Projects/lead-pipeline` with the given stage argument, then summarizes scraped count, filter pass rate, score distribution, top 3 leads, and Notion push confirmation.  
+**Key steps:** Detect stage argument → `cd lead-pipeline && ./run.sh <stage>` → Summarize results  
+**Use case:** Running the lead generation pipeline (all stages or individual stages: scrape/score/push/manual/summary).  
+**Arguments:** `all`, `scrape`, `score`, `push`, `manual`, `summary`.
+
+---
+
+### `/checkpoint`
+**Description:** Create or verify a named checkpoint in your workflow.  
+**What it does:** Runs `/verify quick`, creates a git stash/commit, logs to `.claude/checkpoints.log` with timestamp and git SHA. Can compare current state against a named checkpoint to show files changed, test delta, and coverage delta.  
+**Key steps:** Verify → Stash/commit → Log checkpoint | OR | Read log → Diff state → Report  
+**Use case:** Creating safe rollback points during long feature work.  
+**Arguments:** `create <name>`, `verify <name>`, `list`, `clear`.
+
+---
+
+### `/devfleet`
+**Description:** Orchestrate parallel Claude Code agents via Claude DevFleet — plan projects, dispatch agents in isolated worktrees, monitor progress.  
+**What it does:** Uses the DevFleet MCP server to plan a project from natural language into a mission DAG, dispatch agents in isolated git worktrees (with auto-merge and auto-dispatch on dependency completion), and read structured reports per mission.  
+**Key steps:** `plan_project(prompt)` → Show plan → Get approval → `dispatch_mission()` → Poll `get_mission_status()` → `get_report()`  
+**Use case:** Long-running parallel work that needs isolated git state (e.g., simultaneous frontend and backend feature tracks).  
+**Dependencies:** DevFleet MCP server (`http://localhost:18801/mcp`); tools: `plan_project`, `dispatch_mission`, `get_dashboard`, `get_report`, etc.
+
+---
+
+### `/pm2`
+**Description:** Auto-analyze project and generate PM2 service commands and config files.  
+**What it does:** Scans the project for service types (Vite, Next.js, Nuxt, Express, FastAPI, Go, etc.), generates `ecosystem.config.cjs`, per-service start/stop/restart command files in `.claude/commands/`, PowerShell monitor scripts, and appends a PM2 section to `CLAUDE.md`. Windows-optimized with `.cjs` extensions and Python wrapper scripts.  
+**Key steps:** Detect services → Generate ecosystem config → Generate command files → Update CLAUDE.md → Display summary  
+**Use case:** Setting up PM2 process management for a new or existing project with multiple services.
+
+---
+
+## 2. Code Review
+
+### `/code-review`
+**Description:** Comprehensive security and quality review of uncommitted changes.  
+**What it does:** Gets changed files via `git diff --name-only HEAD`, then checks for: Security issues (hardcoded credentials, SQL injection, XSS, path traversal), Code quality (long functions, deep nesting, missing error handling, console.logs), Best practices (mutation patterns, missing tests, a11y). Blocks commit on CRITICAL or HIGH issues.  
+**Severity levels:** CRITICAL, HIGH, MEDIUM, LOW  
+**Use case:** Pre-commit or PR review gate for any language.
+
+---
+
+### `/pragmatic-code-review`
+**Description:** Comprehensive code review of pending branch changes based on the Pragmatic Quality framework.  
+**What it does:** Injects live `git status`, `git diff --name-only`, `git log`, and full `git diff --merge-base` into the prompt, then invokes the `pragmatic-code-review` agent as Principal Engineer AI Reviewer. Balances engineering rigour with development speed.  
+**Key steps:** Collect git context → Feed to review agent → Return markdown report only  
+**Use case:** Full PR-style review for branches at a lean startup pace.  
+**Allowed tools:** Full toolset including Playwright, Context7.
+
+---
+
+### `/security-review`
+**Description:** Focused security review of pending branch changes — high-confidence vulnerabilities only.  
+**What it does:** 3-phase process: (1) sub-task identifies vulnerabilities; (2) parallel sub-tasks filter false positives per category; (3) filters out findings below confidence 8/10. Covers injection, auth bypass, crypto issues, XSS, data exposure. Excludes DOS, rate-limiting, regex injection, and many other noise categories explicitly.  
+**Key steps:** Identify vulnerabilities → Parallel false-positive filtering → Confidence threshold filter → Markdown report  
+**Use case:** Security-focused PR review before merging auth, payment, or PII-handling code.
+
+---
+
+### `/python-review`
+**Description:** Comprehensive Python code review for PEP 8, type hints, security, and Pythonic idioms.  
+**What it does:** Invokes the `python-reviewer` agent. Runs ruff, mypy, black --check, isort, bandit, pip-audit, pytest --cov. Checks for SQL injection, unsafe eval/exec, pickle deserialization, missing type hints, mutable defaults, PEP 8 violations. Blocks merge on CRITICAL/HIGH issues.  
+**Use case:** Before committing Python changes, or reviewing Python PRs.  
+**Dependencies:** `python-reviewer` agent; tools: ruff, mypy, black, bandit, pytest.
+
+---
+
+### `/design-review`
+**Description:** Elite design review of pending branch changes following Stripe/Airbnb/Linear standards.  
+**What it does:** Injects full git diff and invokes the `design-review` agent. Reviews UI/UX, visual design, accessibility, and front-end implementation. Follows `design-principles.md` and `style-guide.md` from the project's context directory.  
+**Use case:** Pre-merge design review for frontend PRs.
+
+---
+
+### `/quality-gate`
+**Description:** Run the ECC quality pipeline on demand for a file or project scope.  
+**What it does:** Detects language/tooling, runs formatter checks, lint/type checks, and produces a concise remediation list. Mirrors hook behavior but is operator-invoked (not automatic).  
+**Use case:** On-demand quality check during development without waiting for a commit hook.  
+**Arguments:** `[path|.]`, `--fix`, `--strict`.
+
+---
+
+### `/test-coverage`
+**Description:** Analyze test coverage, identify gaps, and generate missing tests to reach 80%+.  
+**What it does:** Detects framework (Jest, Vitest, pytest, cargo-llvm-cov, JaCoCo, Go), runs coverage, lists files below 80% sorted worst-first, generates tests for happy path → error handling → edge cases → branch coverage, re-runs to verify improvement, shows before/after comparison.  
+**Use case:** Bringing an under-tested module up to coverage standards.
+
+---
+
+## 3. Build & Fix
+
+### `/build-fix`
+**Description:** Incrementally fix build and type errors with minimal, safe changes.  
+**What it does:** Detects build system (npm/tsc/cargo/mvn/gradle/go/mypy), runs build, groups errors by file, sorts by dependency order, and fixes one error at a time (read → diagnose → edit → re-run). Stops and asks if a fix introduces more errors or if the same error persists after 3 attempts.  
+**Use case:** Clearing build/type errors after a refactor or dependency update.
+
+---
+
+### `/refactor-clean`
+**Description:** Safely identify and remove dead code with test verification at every step.  
+**What it does:** Runs dead code detection tools (knip, depcheck, ts-prune, vulture, deadcode, cargo-udeps), categorizes findings into SAFE/CAUTION/DANGER tiers, deletes one item at a time with test verification between each, and consolidates near-duplicate functions. Never deletes without a green baseline.  
+**Use case:** Post-feature cleanup or periodic codebase hygiene.
+
+---
+
+### `/update-codemaps`
+**Description:** Analyze codebase structure and generate token-lean architecture documentation.  
+**What it does:** Scans project structure, generates or updates codemaps in `docs/CODEMAPS/` (architecture.md, backend.md, frontend.md, data.md, dependencies.md). Each codemap is under 1000 tokens and optimized for AI context loading. Shows diff percentage and requests approval before overwriting if >30% changed.  
+**Use case:** After major feature additions or refactoring to keep architecture docs fresh for AI context loading.
+
+---
+
+### `/update-docs`
+**Description:** Sync documentation with the codebase, generating from source-of-truth files.  
+**What it does:** Reads package.json scripts, .env.example, openapi.yaml, Dockerfile, and source exports to generate/update CONTRIBUTING.md, ENV.md, and RUNBOOK.md. Flags docs not modified in 90+ days as stale. Preserves hand-written prose by marking generated sections with `<!-- AUTO-GENERATED -->`.  
+**Use case:** Keeping developer documentation current after adding new scripts, env vars, or API endpoints.
+
+---
+
+## 4. TDD
+
+### `/tdd`
+**Description:** Enforce test-driven development workflow: scaffold interfaces → generate tests first → implement minimal code → verify 80%+ coverage.  
+**What it does:** Invokes the `tdd-guide` agent. Strictly enforces RED → GREEN → REFACTOR cycle. Writes failing tests before any implementation, runs them to confirm they fail for the right reason, implements minimally, refactors while keeping tests green, and checks coverage (80% minimum; 100% required for financial/auth/security logic).  
+**Key steps:** Define interface (scaffold) → Write failing tests (RED) → Implement minimally (GREEN) → Refactor → Verify coverage  
+**Use case:** Any new feature, function, or bug fix where tests should drive the design.  
+**Dependencies:** `tdd-guide` agent; pairs with `/plan` before and `/code-review` after.
+
+---
+
+## 5. Multi-Model Collaboration
+
+### `/multi-plan`
+**Description:** Multi-model collaborative planning using Codex (backend) and Gemini (frontend) in parallel.  
+**What it does:** Phase 1: enhances prompt via ace-tool MCP and retrieves project context. Phase 2: calls Codex and Gemini in parallel for analysis (using `run_in_background: true`). Phase 3 (optional): gets plan drafts from both models. Synthesizes into a step-by-step implementation plan saved to `.claude/plan/<feature>.md`. Hands off SESSION_IDs for `/multi-execute` to reuse. **Does not write code.**  
+**Use case:** Complex fullstack features requiring architectural analysis from both frontend and backend perspectives.  
+**Dependencies:** `codeagent-wrapper` binary, ace-tool MCP (optional), Codex/Gemini backends.
+
+---
+
+### `/multi-execute`
+**Description:** Multi-model collaborative execution — get prototype from plan → Claude refactors and implements → multi-model audit and delivery.  
+**What it does:** Reads plan file → retrieves context → routes to Codex (backend) or Gemini (frontend) or both in parallel → gets Unified Diff Patch as prototype → Claude refactors to production-grade code → applies changes → dual Codex+Gemini audit → delivery report. External models have **zero filesystem write access**.  
+**Key steps:** Read plan → Route to model(s) → Get diff prototype → Refactor and apply → Audit → Deliver  
+**Use case:** Executing a plan from `/multi-plan` with model-specialized code generation and review.  
+**Dependencies:** `codeagent-wrapper`, plan file from `/multi-plan`, SESSION_IDs for context resume.
+
+---
+
+### `/multi-workflow`
+**Description:** Full 6-phase multi-model collaborative development workflow.  
+**What it does:** Orchestrates Research → Ideation → Plan → Execute → Optimize → Review with Codex (backend authority) and Gemini (frontend authority) called in parallel at each phase. Uses a completeness score (0-10) gate before proceeding. User must confirm after each phase. Can use external tmux/worktree orchestration for parallel workers.  
+**Use case:** End-to-end feature development with full AI collaboration across all phases.
+
+---
+
+### `/multi-frontend`
+**Description:** Frontend-focused development workflow, Gemini-led.  
+**What it does:** Same 6-phase structure as `/multi-workflow` but Gemini is the sole model authority. Phases: Research → Ideation → Plan → Execute → Optimize → Review. Gemini handles analysis, planning, and review. Claude orchestrates and applies all file changes. Saves plan to `.claude/plan/`.  
+**Use case:** UI components, responsive layouts, animations, style optimization.
+
+---
+
+### `/multi-backend`
+**Description:** Backend-focused development workflow, Codex-led.  
+**What it does:** Same 6-phase structure as `/multi-workflow` but Codex is the sole authority. Covers API design, algorithms, database optimization, and business logic. Claude orchestrates and applies all file changes.  
+**Use case:** API routes, database queries, server logic, algorithm implementation.
+
+---
+
+### `/model-route`
+**Description:** Recommend the best model tier for the current task by complexity and budget.  
+**What it does:** Applies a routing heuristic: haiku for deterministic/mechanical tasks, sonnet for implementation/refactors, opus for architecture/deep review/ambiguous requirements. Returns recommended model, confidence level, rationale, and fallback.  
+**Use case:** Before spawning subagents to determine the right model tier and control cost.  
+**Arguments:** `[task-description]`, `--budget low|med|high`.
+
+---
+
+## 6. Sessions
+
+### `/resume-session`
+**Description:** Load the most recent session file from `~/.claude/session-data/` and resume with full context.  
+**What it does:** Finds the most recently modified `*-session.tmp` file, reads it entirely, and outputs a structured briefing: PROJECT, WHAT WE'RE BUILDING, CURRENT STATE (working/in-progress/not-started), WHAT NOT TO RETRY (critical), OPEN QUESTIONS, NEXT STEP. Does not start working until the user confirms.  
+**Use case:** Starting a new Claude Code session to continue from a previous day's work.  
+**Counterpart:** `/save-session`.
+
+---
+
+### `/save-session`
+**Description:** Save current session state to a dated file so work can be resumed with full context.  
+**What it does:** Reviews all modified files, gathers what worked (with evidence), what failed (with exact reasons), what hasn't been tried, current file states, decisions made, blockers, and exact next step. Writes to `~/.claude/session-data/YYYY-MM-DD-<short-id>-session.tmp`. Shows the file to the user and asks for confirmation.  
+**Use case:** End of session, before hitting context limits, or before handing off to another session.
+
+---
+
+### `/sessions`
+**Description:** Manage Claude Code session history — list, load, alias, and inspect sessions.  
+**What it does:** Uses `scripts/lib/session-manager.js` and `session-aliases.js` to list sessions with metadata (date, time, branch, worktree, alias), load session content, create/remove aliases, and show session statistics (line count, items, completion rate). Sessions from `~/.claude/session-data/` with legacy reads from `~/.claude/sessions/`.  
+**Use case:** Browsing session history, finding a specific past session, creating memorable aliases.  
+**Arguments:** `list [--limit N] [--date] [--search]`, `load <id|alias>`, `alias <id> <name>`, `alias --remove <name>`, `info <id>`, `aliases`.
+
+---
+
+### `/aside`
+**Description:** Answer a quick side question without interrupting or losing context from the current task.  
+**What it does:** Freezes the current task state, answers the question concisely in `ASIDE: [question] / [answer] / — Back to task: [description]` format, then resumes the task automatically. Read-only during the aside — never writes files. If the answer reveals a blocker or direction change, asks for user decision before resuming.  
+**Use case:** Getting a quick explanation, second opinion, or clarification mid-task without derailing flow.
+
+---
+
+## 7. Loops
+
+### `/loop-start`
+**Description:** Start a managed autonomous loop pattern with safety defaults.  
+**What it does:** Confirms repo state, selects a loop pattern (sequential, continuous-pr, rfc-dag, infinite), enables required hooks/profile, creates a loop plan and runbook under `.claude/plans/`, and prints commands to start and monitor the loop. Requires tests pass before first iteration and an explicit stop condition.  
+**Use case:** Setting up a continuous-PR loop, sequential task automation, or RFC-driven development.  
+**Arguments:** `<pattern>`, `--mode safe|fast`.
+
+---
+
+### `/loop-status`
+**Description:** Inspect active loop state, progress, and failure signals.  
+**What it does:** Reports active loop pattern, current phase and last successful checkpoint, failing checks, estimated time/cost drift, and recommended intervention (continue/pause/stop). Watch mode refreshes periodically.  
+**Use case:** Monitoring an autonomous loop that's running in the background.  
+**Arguments:** `--watch`.
+
+---
+
+## 8. Meta / Self-Improvement
+
+### `/harness-audit`
+**Description:** Run a deterministic repository harness audit and return a prioritized scorecard.  
+**What it does:** Runs `scripts/harness-audit.js` which scores 7 fixed categories: Tool Coverage, Context Efficiency, Quality Gates, Memory Persistence, Eval Coverage, Security Guardrails, Cost Efficiency (each 0-10). Returns overall score, category scores, failed checks with file paths, top 3 actions, and suggested ECC skills.  
+**Use case:** Periodic health check of the Claude Code setup; onboarding new projects.  
+**Arguments:** `repo|hooks|skills|commands|agents` (scope), `--format text|json`.
+
+---
+
+### `/skill-create`
+**Description:** Analyze local git history to extract coding patterns and generate SKILL.md files.  
+**What it does:** Parses git history (default: 200 commits), detects patterns (commit conventions, file co-changes, workflow sequences, architecture, testing), and generates a `SKILL.md` with repo-specific practices. Optionally generates instincts for the continuous-learning-v2 system.  
+**Use case:** Bootstrapping skills from an existing codebase's patterns without a GitHub App.  
+**Arguments:** `--commits N`, `--output ./dir`, `--instincts`.
+
+---
+
+### `/skill-health`
+**Description:** Show skill portfolio health dashboard with charts and analytics.  
+**What it does:** Runs `scripts/skills-health.js --dashboard` to display success rate sparklines (30d), failure pattern clustering with bar charts, pending amendments, and version history per skill. Supports panel-specific views and JSON output.  
+**Use case:** Monitoring which skills are declining and need `/evolve` attention.  
+**Arguments:** `--panel failures|sparklines|amendments`, `--json`.
+
+---
+
+### `/rules-distill`
+**Description:** Scan skills to extract cross-cutting principles and distill them into rules.  
+**What it does:** Delegates entirely to the `rules-distill` skill, which scans installed skills, extracts recurring principles, and synthesizes them into consolidated rule entries.  
+**Use case:** Periodic consolidation of ad-hoc skill knowledge into durable global rules.
+
+---
+
+### `/setup-pm`
+**Description:** Configure preferred package manager (npm/pnpm/yarn/bun).  
+**What it does:** Runs `scripts/setup-package-manager.js` to detect, set, or list package manager configuration. Detection priority: env var → project config → package.json → lock file → global config → fallback. Writes to `.claude/package-manager.json` (project) or `~/.claude/package-manager.json` (global).  
+**Use case:** Standardizing the package manager across a project or globally.  
+**Arguments:** `--detect`, `--global <pm>`, `--project <pm>`, `--list`.
+
+---
+
+### `/promote`
+**Description:** Promote project-scoped instincts to global scope in continuous-learning-v2.  
+**What it does:** Runs `instinct-cli.py promote` to find cross-project candidates (appearing in 2+ projects with sufficient confidence) and write them to `~/.claude/homunculus/instincts/personal/` with `scope: global`. Can promote a specific instinct by ID.  
+**Use case:** Graduating useful project-specific learned behaviors to global scope.  
+**Arguments:** `[instinct-id]`, `--dry-run`, `--force`.
+
+---
+
+### `/prune`
+**Description:** Delete pending instincts older than 30 days that were never promoted.  
+**What it does:** Runs `instinct-cli.py prune` to remove expired auto-generated pending instincts that were never reviewed or promoted.  
+**Use case:** Periodic cleanup to prevent stale instinct accumulation.  
+**Arguments:** `--max-age <days>`, `--dry-run`.
+
+---
+
+### `/evolve`
+**Description:** Analyze instincts and suggest or generate evolved structures (commands, skills, agents).  
+**What it does:** Reads project and global instincts, groups by trigger/domain, and identifies clusters that should become Commands (user-invoked), Skills (auto-triggered), or Agents (complex multi-step). With `--generate`, writes files to `~/.claude/homunculus/projects/<id>/evolved/`.  
+**Use case:** After accumulating enough instincts, crystallizing them into reusable automation structures.  
+**Arguments:** `--generate`.
+
+---
+
+### `/learn`
+**Description:** Extract reusable patterns from the current session and save as a skill file.  
+**What it does:** Reviews the session for error resolution patterns, debugging techniques, workarounds, and project-specific conventions. Drafts a skill file at `~/.claude/skills/learned/<pattern-name>.md`. Asks user to confirm before saving. Skips trivial fixes and one-off issues.  
+**Use case:** After solving a non-trivial problem to preserve the insight for future sessions.
+
+---
+
+### `/learn-eval`
+**Description:** Extract patterns with a quality gate, save-location decision, and knowledge-placement check before writing.  
+**What it does:** Extends `/learn` with: (1) global vs project scope determination, (2) a mandatory checklist (grep existing skills for overlap, check MEMORY.md, consider appending vs new file), (3) holistic verdict (Save / Improve then Save / Absorb into X / Drop). Only saves after user confirmation.  
+**Use case:** Stricter version of `/learn` — avoids duplicate or low-value skill files.
+
+---
+
+### `/prompt-optimize`
+**Description:** Analyze a draft prompt and output an optimized, ECC-enriched version — advisory only, does not execute.  
+**What it does:** 6-phase analysis pipeline: project detection → intent classification → scope assessment → ECC component matching → missing context detection → workflow/model recommendation. Outputs Full Version and Quick Version of the optimized prompt, ready to copy-paste. Never executes the task.  
+**Use case:** Before starting a complex task, to get the best-structured prompt with correct skill/agent/model routing.
+
+---
+
+### `/context-budget`
+**Description:** Analyze context window usage across agents, skills, MCP servers, and rules to find optimization opportunities.  
+**What it does:** Delegates to the `context-budget` skill (4 phases: Inventory → Classify → Detect Issues → Report). Assumes 200K context window (Claude Sonnet). Identifies token overhead sources and produces prioritized recommendations.  
+**Use case:** When sessions feel sluggish or hitting context warnings; periodic setup optimization.  
+**Arguments:** `--verbose` for full per-component breakdown.
+
+---
+
+## 9. Utility
+
+### `/dedupe`
+**Description:** Find duplicate GitHub issues for a given issue number.  
+**What it does:** Checks if the issue is already deduped/closed → gets issue summary → launches 5 parallel agents to search GitHub with diverse keywords → filters false positives → posts duplicates via `scripts/comment-on-duplicates.sh`. Uses only `scripts/gh.sh` wrapper — no other tools.  
+**Use case:** Issue triage automation for GitHub repositories.  
+**Allowed tools:** `Bash(./scripts/gh.sh:*)`, `Bash(./scripts/comment-on-duplicates.sh:*)`.
+
+---
+
+### `/triage-issue`
+**Description:** Triage GitHub issues by analyzing content and applying appropriate labels.  
+**What it does:** Fetches available labels, reads issue title/body/comments, checks if the issue is about Claude Code (labels `invalid` if not), applies category and lifecycle labels (`needs-repro`, `needs-info` for bugs only). Never posts comments — only adds/removes labels. Removes `stale`/`autoclose` labels when new activity is present.  
+**Use case:** Automated issue triage for GitHub repositories.  
+**Allowed tools:** `Bash(./scripts/gh.sh:*)`, `Bash(./scripts/edit-issue-labels.sh:*)`.
+
+---
+
+### `/docs`
+**Description:** Look up current documentation for a library or topic via Context7.  
+**What it does:** Calls `mcp__context7__resolve-library-id` with the library name, then `mcp__context7__query-docs` for the specific question, and returns a concise answer with relevant code snippets from live docs (not training data).  
+**Use case:** Any time you need up-to-date API docs, framework config, or migration guidance.  
+**Usage:** `/docs "Next.js" "How do I configure middleware?"`
+
+---
+
+### `/e2e`
+**Description:** Generate and run end-to-end tests with Playwright using the Page Object Model pattern.  
+**What it does:** Invokes the `e2e-runner` agent. Analyzes user flows, generates Playwright tests with proper POM structure, runs across Chromium/Firefox/WebKit, captures screenshots/videos/traces on failure, generates HTML report + JUnit XML, and identifies flaky tests. Includes financial flow safety guard (never run against production).  
+**Use case:** Testing critical user journeys before production deploys.  
+**Dependencies:** `e2e-runner` agent, Playwright.
+
+---
+
+### `/eval`
+**Description:** Manage eval-driven development workflow (define, check, report, list evals).  
+**What it does:** Creates `.claude/evals/<feature>.md` templates with capability and regression evals. Runs evals and logs results to `.claude/evals/<feature>.log`. Generates reports showing pass@1/pass@3 metrics (target: capability pass@3 > 90%, regression pass^3 = 100%). Lists all evals with current status.  
+**Use case:** Tracking whether a feature meets defined behavioral criteria across multiple test runs.  
+**Arguments:** `define <name>`, `check <name>`, `report <name>`, `list`, `clean`.
+
+---
+
+### `/projects`
+**Description:** List known projects and their instinct statistics from continuous-learning-v2.  
+**What it does:** Runs `instinct-cli.py projects` to read `~/.claude/homunculus/projects.json` and display each project's name, ID, root path, remote, personal/inherited instinct counts, observation event count, and last-seen timestamp. Also shows global instinct totals.  
+**Use case:** Overview of what the continuous-learning system knows about each project.
+
+---
+
+### `/claw`
+**Description:** Start NanoClaw v2 — ECC's persistent, zero-dependency REPL with model routing, skill hot-load, branching, compaction, export, and metrics.  
+**What it does:** Runs `scripts/claw.js` (or `npm run claw`). Provides an interactive AI agent session with persistent markdown history at `~/.claude/claw/<session>.md`. Supports `/model`, `/load <skill>`, `/branch`, `/compact`, `/export`, `/metrics` REPL commands, and session search.  
+**Use case:** Long-running interactive AI sessions outside normal Claude Code conversation flow; branching experimental ideas.  
+**Environment vars:** `CLAW_SESSION`, `CLAW_SKILLS`, `CLAW_MODEL`.

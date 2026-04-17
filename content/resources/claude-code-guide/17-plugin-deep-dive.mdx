@@ -1,0 +1,684 @@
+---
+title: "17 — Plugin Deep Dive"
+date: "2026-04-16"
+description: "Plugin internals — how they load, where they hook, and how to debug them."
+order: 17
+tags: ["claude-code", "guide"]
+---
+
+> Complete internal documentation of every skill, agent, command, and workflow for each high-value plugin.
+
+---
+
+## Agent Alchemy (sequenzia) — 6 Sub-Plugins
+
+Agent Alchemy is a suite of six coordinated plugins from `sequenzia` that implement enterprise-grade development workflows using Claude Code's native Agent Teams, Task management (TaskCreate/TaskUpdate/TaskList/TaskGet), and SendMessage coordination.
+
+**Cross-plugin loading pattern:** Skills routinely load siblings via `Read ${CLAUDE_PLUGIN_ROOT}/../<other-plugin>/skills/<skill>/SKILL.md`. The full suite is designed to work as a unit.
+
+**Settings file:** `.claude/agent-alchemy.local.md` — controls per-workflow approval behavior, cache TTLs, TDD strictness, max parallelism, and output paths.
+
+---
+
+### agent-alchemy-claude-tools (v0.2.5)
+
+**Purpose:** Shared reference library. Not user-invocable directly — loaded by other skills.
+
+#### Skills
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `claude-code-tasks` | No | Complete reference for all 6 Task Management tools: TaskCreate, TaskGet, TaskList, TaskUpdate (structured tracking) and TaskOutput, TaskStop (background execution). Covers tool parameters, status lifecycle (pending → in_progress → completed/failed), naming conventions (imperative `subject`, present-continuous `activeForm`), dependency management (DAG with blockedBy/blocks), metadata conventions (priority, complexity, task_group, task_uid). Loaded by any skill that creates or manages tasks. |
+| `claude-code-teams` | No | Reference for Agent Teams lifecycle: TeamCreate/TeamDelete, spawning mechanics (Task tool with `team_name` param), hub-and-spoke topology, SendMessage types and delivery, shutdown protocol (shutdown_request → shutdown_response → force-stop via TaskStop). Paired with messaging-protocol.md, orchestration-patterns.md, and hooks-integration.md references. |
+
+**Bundled agents:** None.
+
+**Key rule:** Every skill that uses tasks or teams loads these references first. They are the authoritative source of truth for tool parameters across the entire Agent Alchemy suite.
+
+---
+
+### agent-alchemy-core-tools (v0.2.3)
+
+**Purpose:** Codebase understanding and analysis primitives. Used standalone or as a building block by dev-tools.
+
+#### Skills
+
+| Skill | Invocable | Trigger phrases | Description |
+|-------|-----------|-----------------|-------------|
+| `codebase-analysis` | Yes | "analyze codebase", "explore codebase", "understand this codebase", "map the codebase", "codebase report" | 3-phase workflow: (1) deep-analysis skill (hub-and-spoke multi-agent exploration), (2) structured report presentation, (3) post-analysis save/document. Calls deep-analysis as a sub-skill. |
+| `deep-analysis` | Yes | "deep analysis", "investigate codebase" | Core multi-agent exploration engine. 6 phases: Session Setup (cache check + interruption recovery), Reconnaissance & Planning (rapid codebase scan → dynamic focus areas → team plan), Review & Approval (configurable), Team Assembly (TeamCreate, spawn N explorer sonnet agents + 1 opus synthesizer), Focused Exploration (hub-and-spoke, explorers work independently), Synthesis (synthesizer merges findings with Bash investigation). Results cached in `.claude/sessions/exploration-cache/`. Supports resume from interrupted sessions. |
+| `language-patterns` | No | Loaded during feature/TDD implementation | TypeScript, Python, and React idioms, best practices, and common patterns. Not user-invocable; loaded by feature-dev and tdd-cycle. |
+| `project-conventions` | No | Loaded during implementation | Guides discovery and application of project-specific patterns via config files, existing code study, and convention checklists. |
+| `technical-diagrams` | No | Loaded when generating Mermaid | Mermaid diagram syntax, styling rules (classDef with color:#000 for text contrast), and quick reference for flowcharts, sequence, class, ER, state, and C4 diagrams. |
+
+#### Bundled Agents
+
+| Agent | Model | Role |
+|-------|-------|------|
+| `code-explorer` | sonnet | Assigned focus areas; explores directories, reads files, searches for patterns, produces findings report |
+| `code-synthesizer` | opus | Merges explorer findings, runs Bash investigation (git history, dependency trees), produces unified synthesis |
+| `code-architect` | (inherited) | Architecture design for feature-dev |
+
+#### Hooks
+
+`auto-approve-da-session.sh` — auto-approves deep-analysis sessions when configured.
+
+---
+
+### agent-alchemy-dev-tools (v0.3.4)
+
+**Purpose:** Day-to-day development workflows: feature implementation, bug fixing, docs, code quality, changelogs.
+
+#### Skills
+
+| Skill | Invocable | Trigger phrases | Description |
+|-------|-----------|-----------------|-------------|
+| `feature-dev` | Yes | "implement [feature]", "add [feature]" | 7-phase workflow: Discovery → Codebase Exploration (via deep-analysis) → Clarifying Questions → Architecture Design → Implementation → Quality Review → Summary. Autonomous end-to-end. |
+| `bug-killer` | Yes | "fix this bug", "debug this", "why is this failing", `--deep` flag | 5-phase hypothesis-driven debugging: Triage & Reproduction (quick vs deep track) → Investigation (language-specific techniques) → Root Cause Analysis (hypothesis journal + evidence) → Fix & Verify (regression test + quality check) → Wrap-up & Report. Mandates root cause before any code change. |
+| `docs-manager` | Yes | "create docs", "write README", "update documentation", "generate docs site" | 6-phase documentation workflow: Interactive Discovery → Project Detection & Setup (MkDocs or standalone markdown) → Codebase Analysis (deep-analysis) → Documentation Planning (user approval) → Generation (docs-writer agents) → Integration & Finalization. |
+| `document-changes` | Yes | "document changes", "generate change report", "session report" | Generates a structured markdown report of session changes from git history. 4 steps: validate git repo → gather changes (git log, diff) → compile report → write to file. |
+| `project-learnings` | No | Loaded by bug-killer/feature-dev after discoveries | Captures project-specific gotchas into CLAUDE.md. Only adds knowledge that passes a "would a developer unfamiliar with this project hit this?" filter. Confirms with user before writing. Self-improving loop. |
+| `changelog-format` | No | Loaded when writing CHANGELOG | Keep a Changelog specification: categories (Added/Changed/Deprecated/Removed/Fixed/Security), imperative mood, user-focused entries, version linking. |
+| `code-quality` | No | Loaded during implementation review | SOLID principles, DRY/KISS/YAGNI, clean code patterns, test pyramid, code smells, refactoring techniques. |
+| `architecture-patterns` | No | Loaded during architecture design | Layered (N-Tier), event-driven, microservices, CQRS patterns with Mermaid visualizations. |
+
+#### Bundled Agents
+
+| Agent | Model | Role |
+|-------|-------|------|
+| `bug-investigator` | (inherited) | Investigates bugs during bug-killer workflow |
+| `changelog-manager` | (inherited) | Manages changelog entries |
+| `code-reviewer` | (inherited) | Code quality review pass |
+| `docs-writer` | (inherited) | Generates documentation content |
+
+#### Hooks
+
+`resolve-cross-plugins.sh` — resolves cross-plugin skill dependencies at session time.
+
+---
+
+### agent-alchemy-git-tools (v0.1.0)
+
+**Purpose:** Git workflow automation.
+
+#### Skills
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `git-commit` | Yes | Guided commit workflow — stages changes, generates commit message following project conventions, confirms before committing. |
+
+**Note:** This is the smallest sub-plugin; just one skill and no bundled agents.
+
+---
+
+### agent-alchemy-sdd-tools (v0.2.11) — Spec-Driven Development
+
+**Purpose:** The full SDD pipeline: spec creation → spec analysis → task decomposition → dependency inference → parallel execution.
+
+#### Skills
+
+| Skill | Invocable | Trigger phrases | Description |
+|-------|-----------|-----------------|-------------|
+| `create-spec` | Yes | "create spec", "new spec", "generate spec" | Adaptive interview → spec document. 6 phases: Settings Check → Initial Inputs (spec name, type: new product/new feature, depth: high-level/detailed/full-tech) → Adaptive Interview (multi-round, depth-aware, proactive recommendations, optional codebase exploration for "new feature" type, optional research agent) → Recommendations Round → Pre-Compilation Summary → Spec Compilation (3 templates: high-level/detailed/full-tech). Uses AskUserQuestion throughout. Writes to `specs/{name}-SPEC.md`. |
+| `analyze-spec` | Yes | "analyze spec", "spec quality check", "validate requirements" | Reviews an existing spec for inconsistencies, ambiguities, missing information, structure issues. Produces HTML review report. Optionally creates fix tasks. |
+| `create-tasks` | Yes | "create tasks", "generate tasks from spec", "spec to tasks" | 10-phase decomposition: Validate & Load → Detect Depth & Check Existing → Analyze Spec (extract features, phases, acceptance criteria) → Select Phases (interactive or `--phase N,M` CLI arg) → Decompose Tasks (standard layer pattern: data model → API → business logic → UI → tests) → Infer Dependencies (layer deps + cross-phase blocking) → Detect Producer-Consumer Relationships (`produces_for` metadata) → Preview & Confirm → Create Tasks (via TaskCreate) → Error Handling. Task metadata includes `source_section`, `spec_path`, `feature_name`, `task_uid`, `task_group`, `spec_phase`, `spec_phase_name`, `produces_for`. |
+| `run-tasks` | Yes | Executes tasks via 3-tier agent hierarchy | Wave-based orchestrator. Loads tasks, builds dependency graph, executes in waves. 3-tier hierarchy: Orchestrator (this skill) → Wave Lead agents → Task Executor + Context Manager agents. Supports `--task-group`, `--phase`, `--max-parallel`, `--retries`, `--dry-run`. File-based wave summary protocol. |
+| `execute-tasks` | Yes | "execute tasks", "run tasks", "start execution" | Direct executor without Wave Lead intermediary. Background agent execution with `run_in_background: true`, result file polling via `poll-for-results.sh`, batched context merging, within-wave retry. Per-task token/duration tracking via TaskOutput. Shares sessions at `.claude/sessions/__live_session__/`. |
+
+#### SDD Workflow Chain
+
+```
+create-spec → analyze-spec → create-tasks → run-tasks (or execute-tasks)
+```
+
+**Incremental generation:** `create-tasks --phase 1` then `--phase 2` — supports merge mode, detects existing tasks by `task_uid`.
+
+#### Bundled Agents
+
+| Agent | Model | Role in run-tasks |
+|-------|-------|------------------|
+| `wave-lead` | opus | Manages all executors in a single execution wave. Creates wave team, spawns Context Manager, spawns task executors with staggered pacing, enforces per-task timeouts (XS/S: 5min, M: 10min, L/XL: 20min), 3-tier retry model (Tier 1: immediate retry, Tier 2: context-enriched retry via CM, Tier 3: orchestrator escalation), writes wave summary to `wave-N-summary.md`. |
+| `context-manager` | sonnet | Lifecycle within a wave: reads prior `execution_context.md`, distributes context to executors via SendMessage, collects context contributions, provides enriched context for Tier 2 retries, finalizes wave section. Spawned conditionally (only when wave has ≥ `context_manager_threshold` tasks, default 3). |
+| `task-executor` | opus | Executes a single task through 4-phase workflow: Understand requirements → Implement → Verify against acceptance criteria → Report (PASS/PARTIAL/FAIL) via SendMessage to wave lead. |
+| `task-executor-v2` | opus | Updated executor for execute-tasks direct path; writes `result-task-{id}.md` and `context-task-{id}.md` instead of SendMessage. |
+| `codebase-explorer` | sonnet | Used by create-spec during codebase exploration for "new feature" specs. |
+| `researcher` | (general-purpose) | Used by create-spec for on-demand or proactive research during interview. |
+| `spec-analyzer` | (inherited) | Used by analyze-spec. |
+
+#### Session State
+
+All execution state lives in `.claude/sessions/__live_session__/`:
+- `execution_plan.md`, `execution_context.md`, `task_log.md`, `progress.md`
+- `result-task-{id}.md`, `context-task-{id}.md` (per-agent, merged after each wave)
+- `wave-{N}-summary.md` (wave lead reports)
+- Archived to `.claude/sessions/{task_execution_id}/` after completion
+
+---
+
+### agent-alchemy-tdd-tools (v0.2.1) — Test-Driven Development
+
+**Purpose:** TDD pipeline that can run standalone or integrate with SDD tasks.
+
+#### Skills
+
+| Skill | Invocable | Trigger phrases | Description |
+|-------|-----------|-----------------|-------------|
+| `tdd-cycle` | Yes | "/tdd-cycle &lt;feature\|task-id\|spec-section&gt;" | Full RED-GREEN-REFACTOR workflow. 7 phases: Parse Input (feature text / task ID / spec section / --retrofit mode) → Understand (load conventions, detect test framework: pytest/jest/vitest, load patterns, snapshot existing test state) → Plan (list failing tests, confirm with user) → RED (write failing tests, verify they fail) → GREEN (implement minimal code, verify all pass + zero regressions) → REFACTOR (incremental cleanup, revert on test breakage) → Report (TDD compliance: RED verified / GREEN verified / refactored). Strictness levels: strict/normal/relaxed from `.claude/agent-alchemy.local.md`. Updates task status if run from SDD task ID. |
+| `generate-tests` | Yes | "/generate-tests &lt;spec\|task\|file&gt;" | Generates test files from acceptance criteria or existing source code (characterization tests). 6 phases: Determine mode (criteria-driven vs code-analysis) → Framework detection → Load patterns → Spawn test-writer agents → Run tests to verify RED state → Report. |
+| `create-tdd-tasks` | Yes | "create tdd tasks", "convert to tdd", "add tdd pairs" | Transforms SDD implementation tasks into test-first TDD task pairs. For each implementation task, creates a paired "Write tests for X" task that blocks it. Preserves existing SDD dependency chain. Adds `tdd_mode`, `tdd_phase` ("red"/"green"), `paired_task_id` metadata. Merge-mode aware (skips already-paired tasks). |
+| `execute-tdd-tasks` | Yes | "execute tdd tasks", "run tdd tasks" | TDD counterpart to execute-tasks. Routes `tdd_phase: "red"` tasks to `tdd-executor` agent, non-TDD tasks to `task-executor`. Wave structure naturally alternates: Wave 1 (RED: parallel test writing) → Wave 2 (GREEN: parallel implementation). Injects paired test task output into GREEN phase agent prompt. Per-pair TDD compliance tracking (RED verified / GREEN verified / refactored / coverage delta). |
+| `analyze-coverage` | Yes | "/analyze-coverage [path] [--spec] [--threshold]" | Runs real coverage tools (pytest-cov, istanbul/c8, jest --coverage), parses JSON reports, identifies gaps by priority (P0: uncovered files, P1: uncovered functions, P2: uncovered branches, P3: below threshold), optionally maps spec acceptance criteria to coverage data to find untested requirements. Reads source for actionable test suggestions. |
+
+#### TDD Pipeline Chain
+
+```
+(SDD tasks) → create-tdd-tasks → execute-tdd-tasks
+             OR
+             tdd-cycle (standalone per feature)
+             OR
+             generate-tests → tdd-cycle --retrofit
+```
+
+#### Bundled Agents
+
+| Agent | Model | Role |
+|-------|-------|------|
+| `tdd-executor` | opus | 6-phase TDD workflow per task: Understand → Write Tests (RED) → Verify RED → Implement (GREEN) → Verify GREEN → Complete/Refactor. Reports TDD compliance. Spawned by execute-tdd-tasks. |
+| `test-reviewer` | sonnet | Reviews generated tests for quality (from generate-tests workflow). |
+| `test-writer` | sonnet | Generates test files in parallel (spawned by generate-tests skill). |
+
+#### Settings (`.claude/agent-alchemy.local.md`)
+
+```yaml
+tdd:
+  framework: auto              # auto | pytest | jest | vitest
+  coverage-threshold: 80       # 0-100
+  strictness: normal           # strict | normal | relaxed
+  test-review-threshold: 70
+  test-review-on-generate: false
+```
+
+---
+
+## Hookify Plugin
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/hookify/7f3389d21fa9/`
+
+**Purpose:** Create and manage custom behavior hooks via simple markdown rule files — no editing `hooks.json` required.
+
+### How It Works
+
+Hookify registers Python hook scripts for all 4 hook events (PreToolUse, PostToolUse, Stop, UserPromptSubmit). These scripts scan the project's `.claude/` directory for `hookify.*.local.md` files and evaluate their rules against each event.
+
+**Rule files:** `.claude/hookify.{rule-name}.local.md`
+
+**Rule format:**
+```markdown
+---
+name: rule-identifier
+enabled: true
+event: bash|file|stop|prompt|all
+pattern: regex-pattern
+action: warn|block
+---
+Message to show when rule triggers.
+```
+
+Multi-condition rules use a `conditions:` YAML array instead of `pattern:`, with `field` + `operator` + `pattern` per condition. All conditions must match.
+
+**Events:** `bash` (Bash tool), `file` (Edit/Write/MultiEdit), `stop` (agent stopping), `prompt` (user prompt submit), `all`
+
+**Actions:** `warn` (show message, allow operation) or `block` (prevent execution / stop session)
+
+**No restart needed:** Rules take effect on the next tool use after file creation.
+
+### Active Rules for This User
+
+No hookify rules are currently active. No `hookify.*.local.md` files exist in `~/.claude/` and no project-level `.claude/` hookify files were found.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/hookify [behavior]` | Create rules from explicit instructions or (without args) analyze recent conversation for unwanted behaviors via `conversation-analyzer` agent. Interactive: presents findings, asks warn vs block, creates `.claude/hookify.{name}.local.md`. |
+| `/hookify:configure` | Enable/disable existing rules interactively. Lists all `.claude/hookify.*.local.md` with current state, lets user toggle with AskUserQuestion. |
+| `/hookify:list` | List all configured rules with status. |
+| `/hookify:help` | Usage guide. |
+
+### Skill
+
+| Skill | Description |
+|-------|-------------|
+| `hookify:writing-rules` | Full reference for rule file format, frontmatter fields, event types, operators (`regex_match`, `contains`, `equals`, `not_contains`, `starts_with`, `ends_with`), field reference per event type, and writing tips. Loaded by the hookify command before rule creation. |
+
+### Conversation-Analyzer Agent
+
+The `conversation-analyzer` agent (model: inherit, tools: Read + Grep) scans the current conversation for:
+- Explicit requests to avoid something ("don't use X", "stop doing Y")
+- Frustrated reactions ("why did you do X?")
+- Corrections/reversions (user fixing Claude's actions)
+- Repeated issues
+
+Returns structured findings: category, tool involved, regex pattern, context, severity (high/medium/low). The `/hookify` command then filters by severity and creates rule files. The agent deliberately avoids false positives from hypotheticals, teaching moments, or one-time accidents.
+
+---
+
+## Superpowers Plugin (v5.0.7)
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/`
+
+**Purpose:** Meta-skill framework that instills disciplined workflows. Skills are loaded via the Skill tool at runtime, not statically. The `using-superpowers` skill is injected at session start.
+
+### Skill Catalog
+
+| Skill | Trigger | What It Does |
+|-------|---------|--------------|
+| `using-superpowers` | Session start (always loaded) | Meta-skill: establishes the skill invocation law. "If there is even a 1% chance a skill might apply, you MUST invoke it." Defines skill priority ordering (process skills first, implementation skills second). Contains a "Red Flags" table of rationalization thoughts that mean "stop and check for a skill." User instructions in CLAUDE.md always override skills. |
+| `brainstorming` | New creative work — before writing any code or scaffolding | Hard-gate workflow: explore project context → offer visual companion → ask clarifying questions ONE AT A TIME → propose 2-3 approaches with trade-offs → present design sections → write design doc to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` → spec self-review. HARD-GATE: zero implementation until design is approved. Includes a TodoWrite checklist enforcer. |
+| `writing-plans` | Have a spec, before touching code | Writes detailed implementation plans with exact file paths, complete code in every step, TDD steps (write failing test → run → implement → run → commit), and "no placeholders" enforcement. Saves to `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`. After writing, offers two execution modes: Subagent-Driven (recommended) or Inline Execution. |
+| `executing-plans` | Have a plan, inline execution mode | Executes a plan task-by-task in the current session with checkpoints for review between phases. |
+| `subagent-driven-development` | Have a plan with mostly independent tasks | Dispatches a fresh subagent per task (isolated context, no session history inheritance) with two-stage review after each: spec compliance review first, then code quality review. Flowchart logic: plan exists + tasks independent + stay in session → use this skill. |
+| `dispatching-parallel-agents` | 2+ independent failures/tasks | One agent per independent problem domain, all dispatched in parallel. Good agent prompts: focused scope, self-contained context, specific output format. Don't use when failures are related or shared state exists. |
+| `systematic-debugging` | Any bug, test failure, or unexpected behavior | Iron Law: NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST. Phase 1: understand/reproduce. Phase 2: gather evidence (language-specific techniques, logs, traces). Phase 3: form + test hypothesis. Phase 4: fix + verify fix is minimal. Red flags to stop: "quick fix", "should work", "try this". Includes reference files: condition-based-waiting, defense-in-depth, root-cause-tracing, find-polluter.sh. |
+| `test-driven-development` | Implementing any feature or bugfix | Write test first. Watch it fail. Write minimal code to pass. Then refactor. Core principle: "If you didn't watch the test fail, you don't know if it tests the right thing." Exceptions require explicit human approval. |
+| `verification-before-completion` | About to claim work is complete | Iron Law: NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE. Gate function: IDENTIFY what command proves the claim → RUN it → READ full output → VERIFY. Common failures table (e.g., "tests pass" requires running test command, not "should pass"). Red flags: "should", "probably", "Great!", "Perfect!", "Done!" before running verification. |
+| `writing-skills` | Creating new skills or improving existing ones | Guidelines for writing high-quality SKILL.md files: frontmatter format, description quality, trigger clarity, checklist structure, anti-pattern prevention. Includes examples, graphviz conventions, persuasion principles. |
+| `requesting-code-review` | About to ask for code review | Structures how to frame code review requests effectively: what context to provide, what to ask for, how to make it actionable. |
+| `receiving-code-review` | Receiving code review feedback | How to process and respond to code review: categorize feedback, prioritize, respond constructively. |
+| `finishing-a-development-branch` | Ready to merge a feature branch | End-of-branch checklist: verification, documentation updates, changelog, PR description, cleanup. |
+| `using-git-worktrees` | Multi-branch parallel work | How to use git worktrees for parallel development: setup, switching, cleanup, avoiding conflicts. |
+
+**Note:** `writing-plans`, `executing-plans`, `subagent-driven-development`, and `dispatching-parallel-agents` are separately registered as `superpowers:write-plan`, `superpowers:execute-plan`, `superpowers:brainstorm` in the skill registry.
+
+---
+
+## claude-mem Plugin (v10.5.5)
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/thedotmack/claude-mem/10.5.5/`
+
+**Purpose:** Persistent cross-session memory database with AST-based code exploration. Stores observations, decisions, bugs fixed, and discoveries as structured data accessible across sessions.
+
+### MCP Tools
+
+The plugin exposes an MCP server with these tools:
+- `search(query, limit, project, type, obs_type, dateStart, dateEnd, offset, orderBy)` — Returns index with IDs, timestamps, types, titles (~50-100 tokens each). Types: "observations", "sessions", "prompts". `obs_type`: bugfix, feature, decision, discovery, change.
+- `timeline(anchor, query, depth_before, depth_after, project)` — Chronological view around an anchor observation. Interleaves observations + sessions + prompts.
+- `get_observations(ids, orderBy, limit, project)` — Batch fetch full observation details (~500-1000 tokens each). Always use for 2+ observations.
+- `smart_search(query, path, max_results, file_pattern)` — AST-based code search. Returns ranked symbols with signatures and line numbers + folded file views.
+- `smart_outline(file_path)` — Structural skeleton of a file (all functions, classes, methods, imports).
+- `smart_unfold(file_path, symbol_name)` — Full source of a single symbol with complete implementation.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/claude-mem:mem-search` | 3-layer search workflow: search → timeline for context → get_observations for selected IDs. 10x token savings vs fetching everything. |
+| `/claude-mem:make-plan` | ORCHESTRATOR mode: deploys Documentation Discovery subagents first (Phase 0 always), then phased implementation. Subagents must return sources, concrete API names, copy-ready snippet locations, and confidence notes. Rejects reports without sources. |
+| `/claude-mem:do` | ORCHESTRATOR mode: executes a plan via subagents. Implementation → Verification → Anti-pattern check → Code quality → Commit (only after verification passes). Each phase uses fresh subagents. Failure modes prevented: no inventing APIs, no undocumented parameters. |
+| `/claude-mem:smart-explore` | Activates the `smart-explore` skill. Overrides default exploration: use `smart_search` → `smart_outline` → `smart_unfold` instead of Read/Grep/Glob. 4-8x token savings on file understanding. Index first, fetch on demand. |
+
+### 35 Language Modes
+
+The `modes/` directory contains 35 specialized response-style configurations:
+- **Code modes:** `code.json` (default), `code--chill.json` (relaxed tone), plus 30 language-localized variants: ar, bn, cs, da, de, el, es, fi, fr, he, hi, hu, id, it, ja, ko, nl, no, pl, pt-br, ro, ru, sv, th, tr, uk, ur, vi, zh.
+- **Specialty modes:** `email-investigation.json`, `law-study.json`, `law-study--chill.json`.
+- These JSON files configure response tone, format, and language for different contexts.
+
+### Session Population
+
+The plugin uses hooks (`hooks.json`) for automatic session context collection. The `session-end-cleanup` hook archives session data. Cross-session memory is populated from:
+1. Observations explicitly written during sessions
+2. Session transcripts indexed at end-of-session
+3. Prompt history tracked via UserPromptSubmit hook
+
+---
+
+## context-engineering Plugin (v3ab8c9488989)
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/context-engineering-marketplace/context-engineering/3ab8c9488989/`
+
+**Purpose:** Educational and practical reference for context engineering — the discipline of curating the optimal token set for AI agent systems.
+
+### Skills
+
+| Skill | Trigger | Description |
+|-------|---------|-------------|
+| `context-fundamentals` | "understand context", "explain context windows", "design agent architecture", "debug context issues", "optimize context usage" | Core concepts: finite attention budget, 4 principles (informativity over exhaustiveness, position-aware placement, progressive disclosure, iterative curation), U-shaped attention curve (85-95% recall at start/end, 76-82% in middle), effective capacity at 60-70% of advertised window. Deep topics via references. |
+| `project-development` | "start an LLM project", "design batch pipeline", "evaluate task-model fit" | Task-model fit decision tables, project architecture patterns (batch vs interactive vs multi-agent), cost estimation, iteration methodology, single vs multi-agent choice criteria. |
+| `advanced-evaluation` | LLM-as-judge, evaluation framework design | Multi-judge patterns, bias mitigation, calibration, evaluation pipeline design. Includes LLM-as-judge-skills example. |
+| `memory-systems` | Agent memory, cross-session persistence, knowledge graphs | Memory types (episodic, semantic, procedural), retrieval patterns, vector stores, graph-based memory. |
+| `context-compression` | Context getting too large, compression strategies | Summarization, selective retention, structured compression, delta encoding. Includes scripts for measuring compression ratios. |
+| `bdi-mental-states` | Agent reasoning, Belief-Desire-Intention architecture | BDI model for agents: belief updating, desire/goal management, intention execution. References include practical implementations. |
+| `hosted-agents` | Building hosted/cloud agents | Deployment patterns, state management, authentication, MCP integration for hosted agents. |
+| `context-degradation` | Context window exhaustion, quality degradation | Degradation patterns, detection strategies, recovery approaches, graceful context management. |
+| `multi-agent-patterns` | Multi-agent orchestration, agent coordination | Topology patterns (hub-and-spoke, pipeline, parallel, hierarchical), communication protocols, shared state management. |
+| `tool-design` | Designing agent tools and function calling | Tool interface design principles, parameter design, error handling, observability. |
+| `filesystem-context` | File-based context management, CLAUDE.md optimization | Project context files, structured documentation for AI consumption, directory organization. |
+| `context-optimization` | Optimizing context usage, reducing token costs | Measurement, profiling, optimization strategies, cost-quality trade-offs. |
+| `evaluation` | Building evaluation systems | Evaluation framework design, metrics, test sets, LLM judge calibration. |
+
+**Examples:** The plugin ships with 5 worked examples including `digital-brain-skill`, `interleaved-thinking`, `book-sft-pipeline`, `llm-as-judge-skills`, and `x-to-book-system`.
+
+---
+
+## Vercel Plugin (v0.40.0)
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/vercel/0.40.0/`
+
+**Purpose:** Comprehensive Next.js/Vercel development reference. Uses a sophisticated hook system for session start profiling, skill auto-injection on context signals, and pattern-based skill chaining.
+
+### 25 Skills — Grouped by Domain
+
+#### Core Knowledge
+
+| Skill | Description |
+|-------|-------------|
+| `knowledge-update` | **Injected at session start.** Corrects outdated LLM knowledge: Edge Functions deprecated (use Fluid Compute), Vercel Postgres/KV gone (use Marketplace), Node.js 24 LTS default, `vercel.ts` replaces `vercel.json`, new products: AI Gateway, Vercel Queues, Vercel Sandbox, Rolling Releases, Sign in with Vercel, Vercel BotID, Vercel MCP server. |
+
+#### Deployment & CI/CD
+
+| Skill | Description |
+|-------|-------------|
+| `deployments-cicd` | GitHub Actions workflows, preview deployments, production promotions, `vercel-action`, VERCEL_TOKEN setup. |
+| `vercel-cli` | Full `vercel` CLI reference: `vercel deploy`, `vercel env pull`, `vercel logs`, `vercel inspect`, `vercel link`, `vercel dev`. 38-item skill with 16 reference files and 18 upstream docs. |
+| `bootstrap` | New project bootstrapping — recommended stack setup, initial configuration. |
+
+#### Functions & Compute
+
+| Skill | Description |
+|-------|-------------|
+| `vercel-functions` | Fluid Compute (replaces Edge Functions), function configuration, timeouts (default 300s), Active CPU pricing, Python 3.13/3.14 support, Bun and Rust runtimes. |
+| `vercel-sandbox` | Firecracker microVM ephemeral environments for untrusted/AI-generated code execution. GA January 2026. `@vercel/sandbox` package. |
+| `runtime-cache` | Runtime caching strategies, cache invalidation, revalidation patterns. |
+
+#### Storage
+
+| Skill | Description |
+|-------|-------------|
+| `vercel-storage` | Current storage options via Vercel Marketplace (Postgres, KV, Blob, etc.). Note: Vercel Postgres and Vercel KV are deprecated. |
+
+#### Routing & Middleware
+
+| Skill | Description |
+|-------|-------------|
+| `routing-middleware` | Framework-agnostic Routing Middleware (distinct from Next.js middleware), request matching, response manipulation, geo/bot detection. |
+| `next-cache-components` | Next.js cache and component patterns, `use cache`, `cacheTag`, `cacheLife`. |
+
+#### AI
+
+| Skill | Description |
+|-------|-------------|
+| `ai-sdk` | Vercel AI SDK v6: `generateText`, `streamText`, `streamObject` (removed — use `streamText` with `output: Output.object()`), tool calling, `useChat`, Agent class, model configuration. 12-item skill with overlay + upstream docs. |
+| `ai-gateway` | AI Gateway: unified API for 100+ models, OIDC auth (`vercel env pull` → `VERCEL_OIDC_TOKEN`), `"provider/model"` string routing, provider failover via `order:`, per-user rate limiting via `user:`, cost attribution via `tags:`, cache-control, audit logging, Claude Code compatibility mode. No markup on token pricing. $5/month free credits. |
+| `chat-sdk` | Vercel Chat SDK patterns for building chat interfaces. |
+| `vercel-agent` | AI-powered code review (PR analysis via `@vercel` mention), incident investigation (requires Observability Plus), SDK installation automation. $0.30/use + token costs. |
+
+#### Workflows & Orchestration
+
+| Skill | Description |
+|-------|-------------|
+| `workflow` | **Vercel Workflow DevKit (WDK):** `"use workflow"` (durable function) and `"use step"` (cached retryable unit) directives. Sandbox limitations (no native fetch/setTimeout — use workflow imports). `DurableAgent` for AI agents. `createHook`/`resumeHook` for pause/resume. `sleep()` for delays. Namespaced streams via `getWritable({ namespace })`. Vitest plugin for integration testing. CLI: `npx workflow web`, `npx workflow inspect runs`, `npx workflow cancel`. Validate patterns catch common migration errors. |
+
+#### Frameworks
+
+| Skill | Description |
+|-------|-------------|
+| `nextjs` | Next.js App Router, Pages Router, RSC patterns, ISR, image optimization. 44-item skill with 20 references. |
+| `next-upgrade` | Migration guides between Next.js versions. `@ai-sdk/codemod` for automated migrations. |
+| `next-forge` | next-forge monorepo starter — structure, packages, conventions. |
+| `react-best-practices` | 138-item comprehensive React best practices reference with 66 rules and 68 upstream docs. |
+| `turbopack` | Turbopack configuration, migration from webpack. |
+
+#### Auth & Integrations
+
+| Skill | Description |
+|-------|-------------|
+| `auth` | Authentication patterns on Vercel — Auth.js, Clerk, custom auth. |
+| `shadcn` | shadcn/ui component integration in Next.js projects. |
+| `marketplace` | Vercel Marketplace integrations — storage providers, monitoring, auth. |
+
+#### Workflow
+
+| Skill | Description |
+|-------|-------------|
+| `env-vars` | Environment variable management: `.env.local`, `vercel env pull`, production/preview/development scoping. |
+| `verification` | Vercel deployment verification patterns and post-deploy checks. |
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/vercel:bootstrap` | New Vercel project setup — recommended stack, initial config. |
+| `/vercel:deploy` | Deployment workflow — pre-deploy checks, deploy command, verify. |
+| `/vercel:env` | Environment variable management. |
+| `/vercel:marketplace` | Browse and configure Vercel Marketplace integrations. |
+| `/vercel:status` | Check deployment and function status. |
+
+### Hook System
+
+The Vercel plugin uses sophisticated hooks:
+- **Session start profiler:** Detects project context (Next.js, AI SDK imports, workflow files) and pre-loads relevant skills.
+- **Skill injection:** `pretooluse-skill-inject.mjs` auto-injects skills based on file path patterns and import patterns.
+- **Pattern matching:** 200+ `promptSignals` phrases across skills with `allOf`, `anyOf`, `noneOf` combinators and a `minScore` threshold.
+- **Skill chaining:** `chainTo` directives auto-load related skills when patterns are detected (e.g., DurableAgent in workflow file → load ai-sdk skill).
+- **Validate patterns:** Each skill can define anti-patterns that trigger warnings/errors in-context (e.g., `experimental_createWorkflow` → migrate to stable `createWorkflow`).
+
+---
+
+## Figma Plugin (v2.1.7)
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/figma/2.1.7/`
+
+**Purpose:** Full Figma design system integration — read designs, implement code, generate designs programmatically, manage design systems.
+
+### Skills
+
+| Skill | Description |
+|-------|-------------|
+| `figma-use` | **MANDATORY prerequisite** before every `use_figma` tool call. Loads Plugin API rules: return values (not console.log), plain JS with top-level `await`, no `figma.closePlugin()`, colors in 0-1 range, fills/strokes as read-only arrays (clone-modify-reassign), font loading required before text ops, `setCurrentPageAsync()` for page switching. References: `plugin-api-standalone.d.ts` (grep for types), `working-with-design-systems/wwds.md`. Always pass `skillNames: "figma-use"` to `use_figma`. |
+| `figma-implement-design` | Translates Figma designs to production code. Requires Figma URL `https://figma.com/design/:fileKey/:name?node-id=1-2`. Workflow: get node data via MCP → extract design tokens → map to existing component library → generate production code with 1:1 visual fidelity. |
+| `figma-generate-design` | Builds full pages/screens in Figma from code or description. Uses `search_design_system` to discover components, imports them, assembles incrementally. Pairs with figma-use for API rules. |
+| `figma-create-design-system-rules` | Authors reusable agent rules (CLAUDE.md/AGENTS.md) for a design system — encoding component usage, naming conventions, token mapping. |
+| `figma-code-connect` | Creates Code Connect mappings — links Figma components to their code implementations for the Figma Dev Mode. |
+| `figma-generate-library` | Generates a complete Figma component library programmatically. 18-item skill. |
+
+### MCP Tools
+
+- `mcp__plugin_figma_figma__authenticate` — authentication flow
+- `mcp__plugin_figma_figma__complete_authentication`
+- `use_figma` — executes JavaScript in Figma via Plugin API
+
+### Skill Boundary Rules
+
+- Writing code from Figma → `figma-implement-design`
+- Creating/editing Figma nodes → `figma-use`
+- Building screens in Figma from description → `figma-generate-design`
+- Code Connect mappings → `figma-code-connect`
+- Design system CLAUDE.md rules → `figma-create-design-system-rules`
+
+---
+
+## Slack Plugin (v1.0.0)
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/slack/1.0.0/`
+
+**Purpose:** Slack workspace integration for messaging, searching, and communication workflows.
+
+### Skills
+
+| Skill | Description |
+|-------|-------------|
+| `slack-messaging` | Composing well-formatted Slack messages. Markdown syntax reference (bold, italic, code, lists — no tables/headers/image-markdown). Structure guidelines: lead with the point, keep short (1-3 paragraphs), use bullets for 3+ items, bold key information. Thread vs channel etiquette: reply in threads, `reply_broadcast` only for everyone-needs-to-see info. |
+| `slack-search` | Effective Slack search strategy. 4 tools: `slack_search_public`, `slack_search_public_and_private` (requires consent), `slack_search_channels`, `slack_search_users`. Search modifiers: `in:channel`, `from:@user`, `before:/after:/on:` dates, `is:thread`, `has:pin`, `"exact phrase"`, wildcards. No AND/OR/parentheses. File search via `content_types="files"`. Follow-up: `slack_read_thread`, `slack_read_channel` with timestamps. |
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/slack:standup` | Post a standup message — prompts for updates, formats, sends to configured channel. |
+| `/slack:find-discussions` | Search Slack for discussions on a topic. |
+| `/slack:summarize-channel` | Summarize recent activity in a channel. |
+| `/slack:channel-digest` | Create a digest of channel activity over a time period. |
+| `/slack:draft-announcement` | Draft an announcement for team review before posting. |
+
+### MCP Tools
+
+- `mcp__plugin_slack_slack__authenticate` — OAuth flow
+- `mcp__plugin_slack_slack__complete_authentication`
+- `slack_send_message`, `slack_search_public`, `slack_read_channel`, etc. (full Slack API surface)
+
+---
+
+## Telegram Plugin (v0.0.6)
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/telegram/0.0.6/`
+
+**Purpose:** Personal Telegram bot integration — receive and respond to Telegram DMs and group messages through Claude Code.
+
+### Skills / Commands
+
+| Command | Description |
+|---------|-------------|
+| `/telegram:configure [token]` | Set up Telegram channel. Without args: shows status (token set/not-set, access policy, allowed senders, pending pairings) and advises next step. With `<token>`: saves BotFather token to `~/.claude/channels/telegram/.env` (chmod 600). With `clear`: removes token. **Always drives toward lockdown** — goal is `allowlist` policy, not staying on `pairing`. |
+| `/telegram:access [subcommand]` | Manage access control via `~/.claude/channels/telegram/access.json`. Subcommands: `pair <code>` (approve DM pairing), `deny <code>`, `allow <senderId>`, `remove <senderId>`, `policy <pairing|allowlist|disabled>`, `group add <groupId>`, `group rm <groupId>`, `set <key> <value>`. **Security:** only accepts access mutations from terminal session — refuses requests arriving via Telegram messages (prompt injection protection). |
+
+### Access Policies
+
+| Policy | Behavior |
+|--------|----------|
+| `pairing` | Bot generates a 6-char code when someone DMs it; user runs `pair <code>` to approve. Temporary — lock down after capturing IDs. |
+| `allowlist` | Only pre-approved `senderId`s can reach Claude. Recommended long-term state. |
+| `disabled` | Bot accepts no DMs. |
+
+### Group Support
+
+Telegram groups can be configured with `requireMention: true` (bot must be @mentioned) and per-group `allowFrom` lists.
+
+---
+
+## code-review Plugin
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/code-review/7f3389d21fa9/`
+
+### Command
+
+| Command | Description |
+|---------|-------------|
+| `/code-review:code-review` | Full multi-agent PR code review. 8-step pipeline: (1) Haiku eligibility check (closed/draft/automated/already-reviewed), (2) Haiku finds relevant CLAUDE.md files, (3) Haiku summarizes the PR, (4) 5 parallel Sonnet agents: CLAUDE.md compliance, shallow bug scan, git blame/history context, previous PR comments, code comment compliance, (5) Haiku confidence scorer per issue (0-100 scale), (6) filter issues &lt; 80 confidence, (7) re-check eligibility, (8) `gh pr comment` with formatted output. Links use full SHA1 + line range. Avoids: linter-catchable issues, pre-existing bugs, intentional behavior changes, issues on unmodified lines. |
+
+---
+
+## feature-dev Plugin
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/feature-dev/7f3389d21fa9/`
+
+### Command
+
+| Command | Description |
+|---------|-------------|
+| `/feature-dev:feature-dev [description]` | 7-phase guided feature development: Discovery → Codebase Exploration (2-3 parallel code-explorer agents, read all files they identify) → Clarifying Questions (CRITICAL — ask all ambiguities BEFORE designing) → Architecture Design (2-3 parallel code-architect agents: minimal/clean/pragmatic approaches, present trade-offs, user picks) → Implementation (wait for explicit approval first) → Quality Review (3 parallel code-reviewer agents: simplicity/bugs/conventions) → Summary. |
+
+### Bundled Agents
+
+| Agent | Role |
+|-------|------|
+| `code-explorer` | Traces architecture and control flow for a specific codebase aspect, returns key files list |
+| `code-architect` | Designs one implementation approach (minimal/clean/pragmatic), returns detailed design |
+| `code-reviewer` | Reviews from one perspective (simplicity, correctness, or conventions) |
+
+---
+
+## pr-review-toolkit Plugin
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/7f3389d21fa9/`
+
+**Purpose:** Comprehensive multi-agent PR review with specialized reviewers.
+
+### Command
+
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `/pr-review-toolkit:review-pr` | `[aspects] [parallel]` | Orchestrates specialized review agents. Aspects: `comments`, `tests`, `errors`, `types`, `code`, `simplify`, `all` (default). Sequential by default; `parallel` flag launches all simultaneously. After agents complete: categorize as Critical/Important/Suggestions/Strengths and provide action plan. |
+
+### Bundled Agents
+
+| Agent | Focus |
+|-------|-------|
+| `code-reviewer` | CLAUDE.md compliance, general bugs, code quality |
+| `comment-analyzer` | Comment accuracy vs code, comment rot, documentation completeness |
+| `pr-test-analyzer` | Behavioral test coverage, critical gaps, test quality |
+| `silent-failure-hunter` | Silent failures, empty catch blocks, missing error logging |
+| `type-design-analyzer` | Type encapsulation, invariant expression, type design quality |
+| `code-simplifier` | Code simplification, clarity improvement, preserves functionality |
+
+### Usage Workflow
+
+```
+Before committing:     /pr-review-toolkit:review-pr code errors
+Before creating PR:    /pr-review-toolkit:review-pr all
+After PR feedback:     /pr-review-toolkit:review-pr <targeted-aspects>
+```
+
+---
+
+## frontend-design Plugin
+
+**Location:** `/Users/nikolassapalidis/.claude/plugins/cache/claude-plugins-official/frontend-design/7f3389d21fa9/`
+
+**Purpose:** Auto-triggered for frontend work. Generates distinctive, production-grade UI avoiding generic AI aesthetics.
+
+### Skill
+
+| Skill | Trigger | Description |
+|-------|---------|-------------|
+| `frontend-design:frontend-design` | Frontend UI work, new pages, major components from scratch, visual/design feedback | Bold aesthetic choices, distinctive typography and color palettes, high-impact animations, context-aware implementation. Created by Prithvi Rajasekaran and Alexander Bricken at Anthropic. Reference: [Frontend Aesthetics Cookbook](https://github.com/anthropics/claude-cookbooks/blob/main/coding/prompting_for_frontend_aesthetics.ipynb). |
+
+**Note:** This plugin's skill is overridden by Nikolas's personal `design-dna.md` rules which add specific constraints: no gradient backgrounds, no emojis (use icons), no Inter/Roboto/Arial as primary, physics-based easing (spring/ease-out-expo), glassmorphism where appropriate, restrained color palette.
+
+---
+
+## Quick Reference: Skill Command Index
+
+| Slash Command | Plugin | Purpose |
+|---------------|--------|---------|
+| `/agent-alchemy-core-tools:codebase-analysis` | core-tools | Full codebase analysis with multi-agent exploration |
+| `/agent-alchemy-core-tools:deep-analysis` | core-tools | Hub-and-spoke multi-agent deep exploration |
+| `/agent-alchemy-dev-tools:feature-dev` | dev-tools | 7-phase feature development |
+| `/agent-alchemy-dev-tools:bug-killer` | dev-tools | Hypothesis-driven debugging |
+| `/agent-alchemy-dev-tools:docs-manager` | dev-tools | Documentation generation/management |
+| `/agent-alchemy-dev-tools:document-changes` | dev-tools | Session change report |
+| `/agent-alchemy-dev-tools:code-quality` | dev-tools | (internal) Code quality principles |
+| `/agent-alchemy-dev-tools:changelog-format` | dev-tools | (internal) Keep a Changelog format |
+| `/agent-alchemy-git-tools:git-commit` | git-tools | Guided commit workflow |
+| `/agent-alchemy-sdd-tools:create-spec` | sdd-tools | Adaptive interview → spec document |
+| `/agent-alchemy-sdd-tools:analyze-spec` | sdd-tools | Spec quality audit |
+| `/agent-alchemy-sdd-tools:create-tasks` | sdd-tools | Spec → TaskCreate decomposition |
+| `/agent-alchemy-sdd-tools:run-tasks` | sdd-tools | Wave-based task execution (wave-lead architecture) |
+| `/agent-alchemy-sdd-tools:execute-tasks` | sdd-tools | Direct task execution (background agents) |
+| `/agent-alchemy-tdd-tools:tdd-cycle` | tdd-tools | Full RED-GREEN-REFACTOR workflow |
+| `/agent-alchemy-tdd-tools:generate-tests` | tdd-tools | Test file generation from spec/code |
+| `/agent-alchemy-tdd-tools:create-tdd-tasks` | tdd-tools | Convert SDD tasks to TDD pairs |
+| `/agent-alchemy-tdd-tools:execute-tdd-tasks` | tdd-tools | Execute TDD pairs with compliance tracking |
+| `/agent-alchemy-tdd-tools:analyze-coverage` | tdd-tools | Coverage analysis with gap recommendations |
+| `/hookify [behavior]` | hookify | Create hook rules from behavior |
+| `/hookify:configure` | hookify | Enable/disable rules interactively |
+| `/hookify:list` | hookify | List all rules |
+| `/claude-mem:mem-search` | claude-mem | Cross-session memory search |
+| `/claude-mem:make-plan` | claude-mem | Documentation-grounded plan creation |
+| `/claude-mem:do` | claude-mem | Orchestrated plan execution |
+| `/claude-mem:smart-explore` | claude-mem | AST-based code exploration |
+| `/vercel:bootstrap` | vercel | New project setup |
+| `/vercel:deploy` | vercel | Deployment workflow |
+| `/vercel:env` | vercel | Environment variable management |
+| `/vercel:marketplace` | vercel | Marketplace integrations |
+| `/vercel:status` | vercel | Deployment status check |
+| `/telegram:configure [token]` | telegram | Bot token setup and status |
+| `/telegram:access [subcommand]` | telegram | Access policy management |
+| `/slack:standup` | slack | Post standup message |
+| `/slack:find-discussions` | slack | Search for topic discussions |
+| `/slack:summarize-channel` | slack | Channel summary |
+| `/slack:channel-digest` | slack | Channel activity digest |
+| `/slack:draft-announcement` | slack | Draft announcement for review |
+| `/code-review:code-review` | code-review | Multi-agent PR code review |
+| `/feature-dev:feature-dev` | feature-dev | Guided feature development |
+| `/pr-review-toolkit:review-pr` | pr-review-toolkit | Comprehensive PR review |

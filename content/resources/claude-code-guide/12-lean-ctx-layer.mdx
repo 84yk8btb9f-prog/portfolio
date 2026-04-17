@@ -1,0 +1,377 @@
+---
+title: "12 — lean-ctx Layer"
+date: "2026-04-16"
+description: "ctx_read, ctx_shell, ctx_search — the token-saving layer under every call."
+order: 12
+tags: ["claude-code", "guide"]
+---
+
+> **Version:** lean-ctx 3.1.1 | 42 MCP tools | 90+ compression patterns  
+> **Install path:** `/opt/homebrew/bin/lean-ctx`  
+> **Config:** `~/.lean-ctx/config.toml` | **Tee logs:** `~/.lean-ctx/tee/`
+
+---
+
+## Philosophy
+
+Every file read and shell command output that flows into Claude's context window costs tokens. lean-ctx intercepts those operations and returns compressed, cached results instead of raw output. The result:
+
+- **Session caching** — a file read once costs ~1000+ tokens; every re-read after that costs ~13 tokens (a stub reference, e.g. `F3=CLAUDE.md cached 2t 27L`).
+- **Pattern compression** — 90+ domain-specific patterns strip boilerplate from git, npm, docker, kubectl, tsc, and other tool output before it enters context.
+- **File ID system** — every file gets a short ID (`F1`, `F2`, …) that persists across the session. References replace full content on re-reads.
+- **Autonomous background work** — lean-ctx auto-runs `ctx_overview`, `ctx_preload`, and `ctx_dedup` behind the scenes; auto-checkpoints every 15 calls.
+
+The net effect across a long session: hundreds of thousands of tokens saved at ~99% compression rates. The current session (v356) has saved **341,516 tokens** over 626 calls.
+
+---
+
+## Mandatory Tool Mapping
+
+Always use lean-ctx tools for read and shell operations. Native Edit/Write/Delete/Glob are unaffected — lean-ctx only replaces **read** operations.
+
+| ALWAYS USE | NEVER USE | Why |
+|---|---|---|
+| `ctx_read(path)` | `Read` / `cat` / `head` / `tail` | Session caching + 8 compression modes; re-reads ~13 tok |
+| `ctx_shell(command)` | `Bash` / shell commands | Pattern compression compresses 90+ tools by up to 99% |
+| `ctx_search(pattern, path)` | `Grep` / `rg` | Compact, gitignore-aware results |
+| `ctx_tree(path, depth)` | `ls` / `find` | Compact directory maps with file counts |
+
+**Editing is unaffected.** Keep using native `Edit` / `Write` / `StrReplace`. If `Edit` fails because it needs a prior `Read`, switch immediately to `ctx_edit` — never loop.
+
+---
+
+## Core Tools
+
+### `ctx_read` — Cached File Read
+
+```
+ctx_read(path, mode?, fresh?, start_line?)
+```
+
+**File reference system:** Every file is assigned a session-scoped ID (`F1`, `F2`, …). On the first read, full content is returned. On all subsequent reads, a stub is returned:
+
+```
+F3=CLAUDE.md cached 2t 27L
+File already in context from previous read. Use fresh=true to re-read if content needed again.
+```
+
+This means only ~13 tokens are consumed instead of the full file on re-reads.
+
+**Modes:**
+
+| Mode | When to use |
+|---|---|
+| `full` (default) | Cached read for files you will edit |
+| `map` | Dependency graph + API signatures — use for context-only files |
+| `signatures` | tree-sitter AST extraction (18 languages) — API surface only |
+| `diff` | Changed lines only — use after an edit |
+| `aggressive` | Syntax-stripped content |
+| `entropy` | Shannon + Jaccard filtering — highest information density |
+| `task` | IB-filtered for current task relevance |
+| `reference` | Reference lookup mode |
+| `lines:N-M` | Specific line ranges, e.g. `lines:10-50,80` |
+
+**Bypassing cache:** Pass `fresh=true` to force a full re-read, or use `start_line=N` to read from a specific line (both bypass the cache stub).
+
+---
+
+### `ctx_shell` — Compressed Shell Output
+
+```
+ctx_shell(command, cwd?, raw?)
+```
+
+Runs any shell command and compresses the output with 90+ domain patterns before returning it. Pass `raw=true` to skip compression when full detail is critical.
+
+**Shell hook patterns cover:**
+
+| Category | Commands |
+|---|---|
+| Git | status, log, diff, add, commit, push, pull, fetch, clone, branch, checkout, merge, stash, tag, reset, remote |
+| Docker | build, ps, images, logs, compose, exec, network |
+| npm/pnpm/yarn | install, test, run, list, outdated, audit |
+| Cargo | build, test, check, clippy |
+| GitHub CLI | pr list/view/create, issue list/view, run list/view |
+| kubectl | get pods/services/deployments, logs, describe, apply |
+| Python | pip install/list/outdated, ruff, poetry, uv |
+| Linters | eslint, biome, prettier, golangci-lint |
+| Builds | tsc, next build, vite build |
+| Tests | jest, vitest, pytest, go test, playwright, rspec, minitest |
+| IaC | terraform, make, maven, gradle, dotnet, flutter |
+| Utils | curl, grep/rg, find, ls, wget, env |
+
+The `cwd` parameter persists across calls via internal `cd` tracking.
+
+---
+
+### `ctx_search` — Regex Code Search
+
+```
+ctx_search(pattern, path?, ext?, max_results?, ignore_gitignore?)
+```
+
+Gitignore-aware regex search with compact results. Uses ripgrep under the hood. Results are deduplicated and token-compressed before being returned.
+
+---
+
+### `ctx_tree` — Directory Listing
+
+```
+ctx_tree(path?, depth?, show_hidden?)
+```
+
+Compact directory maps with file counts. Default depth is 3. Replaces `ls -R` and `find` for orientation tasks.
+
+---
+
+### `ctx_edit` — Fallback Edit
+
+```
+ctx_edit(path, old_string, new_string)
+```
+
+Reads, replaces, and writes in a single MCP call. Use **only** when native `Edit` fails because it requires a prior `Read` that is unavailable. Never loop on Edit failures — switch to `ctx_edit` immediately.
+
+---
+
+## Advanced Tools
+
+### Semantic Search & Intent
+
+| Tool | Purpose |
+|---|---|
+| `ctx_semantic_search(query, path?, mode?, top_k?, languages?, path_glob?)` | BM25 + optional embeddings (hybrid) semantic code search. Use when exact regex misses conceptual matches. Actions: `reindex` to rebuild. |
+| `ctx_intent` | Infers current task intent from session context |
+| `ctx_smart_read` | Combines overview + read — intelligently selects what to show |
+
+---
+
+### Knowledge & Memory
+
+#### `ctx_knowledge` — Persistent Project Facts
+
+```
+ctx_knowledge(action, key?, value?, category?, confidence?)
+```
+
+Facts survive across sessions with temporal validity tracking and contradiction detection.
+
+| Action | What it does |
+|---|---|
+| `remember` | Store a fact; auto-detects contradictions with prior facts |
+| `recall` | Search stored facts by key/category/value |
+| `pattern` | Record a coding convention |
+| `gotcha` | Record a bug/mistake with trigger + resolution to never repeat |
+| `timeline` | View version history for a category |
+| `rooms` | List all knowledge categories |
+| `search` | Cross-project search across ALL projects |
+| `wakeup` | Return a compact AAAK briefing for session start |
+| `consolidate` | Extract and store findings from current session |
+| `status` | List all stored facts |
+
+Categories: `architecture`, `api`, `testing`, `deployment`, `conventions`, `dependencies`.
+
+---
+
+#### `ctx_session` — Cross-Session Memory (CCP)
+
+```
+ctx_session(action, session_id?, value?)
+```
+
+Context Continuity Protocol — saves and restores session state (~400 tokens to restore a prior session).
+
+| Action | What it does |
+|---|---|
+| `load` | Restore a previous session (default: latest) |
+| `save` | Persist current session state |
+| `status` | Show current session: version, duration, calls, tokens saved |
+| `task` | Set the current task description |
+| `finding` | Record a discovery |
+| `decision` | Record a choice made |
+| `list` | Show all saved sessions |
+| `cleanup` | Remove old sessions |
+
+---
+
+### Multi-Agent Coordination
+
+#### `ctx_agent` — Agent Message Bus + Diaries
+
+```
+ctx_agent(action, agent_type?, role?, message?, category?, status?, to_agent?)
+```
+
+Shared message bus for multi-agent workflows. Agent diaries persist across sessions.
+
+| Action | What it does |
+|---|---|
+| `register` | Join the bus with `agent_type` + `role` |
+| `post` | Broadcast or send a direct message with a category |
+| `read` | Poll pending messages |
+| `handoff` | Transfer a task to another agent with a summary |
+| `sync` | Overview of all agents + pending messages + shared contexts |
+| `diary` | Log a persistent entry (`category`: discovery/decision/blocker/progress/insight) |
+| `recall_diary` | Read this agent's diary |
+| `diaries` | List all agent diaries |
+| `status` | Update agent state (active/idle/finished) |
+
+---
+
+#### `ctx_share` — Context Sharing
+
+Auto-pushes context at checkpoints during multi-agent sessions. Shared contexts are available via `ctx_agent(action=sync)`.
+
+---
+
+### Graph & Symbol Analysis
+
+| Tool | Purpose |
+|---|---|
+| `ctx_callees(symbol, path?)` | Functions/methods called by a symbol |
+| `ctx_callers(symbol, path?)` | All callers of a symbol |
+| `ctx_graph(path?, depth?)` | Dependency graph for the codebase |
+| `ctx_graph_diagram(path?)` | Mermaid/visual dependency diagram |
+| `ctx_symbol(name, path?)` | Find and read a symbol definition |
+| `ctx_routes(path?)` | Extract all routes from web framework code |
+| `ctx_outline(path)` | High-level structural outline of a file |
+
+---
+
+### Compression & Efficiency
+
+| Tool | Purpose |
+|---|---|
+| `ctx_compress` | Context checkpoint for long conversations — compresses accumulated context |
+| `ctx_compress_memory` | Compress and consolidate in-session memory |
+| `ctx_dedup` | Remove duplicate content from context |
+| `ctx_delta(path)` | Show only what changed since last read (file-level diff) |
+| `ctx_cache` | Manage the file cache (inspect, clear, warm) |
+
+---
+
+### Session & Meta Tools
+
+| Tool | Purpose |
+|---|---|
+| `ctx_overview(path?, task?)` | Task-relevant project map — use at session start |
+| `ctx_preload(path?)` | Preload likely-needed files before a task |
+| `ctx_context` | Show current context window state |
+| `ctx_multi_read(paths[])` | Read multiple files in a single call |
+| `ctx_metrics` | Session token stats, cache hit rates, per-tool savings |
+| `ctx_analyze(path?)` | Deep analysis of project structure and patterns |
+| `ctx_benchmark` | Run compression benchmarks on project files |
+| `ctx_discover` | Find uncompressed commands in shell history (savings opportunities) |
+| `ctx_wrapped` | Savings report card (weekly/monthly/all-time, shareable) |
+| `ctx_execute` | Execute a plan step with context tracking |
+| `ctx_fill` | Fill context gaps from project files |
+| `ctx_response` | Format and compress a response before returning |
+
+---
+
+## Hooks Integration
+
+lean-ctx registers two `PreToolUse` hooks in `~/.claude/settings.json`:
+
+```json
+"PreToolUse": [
+  {
+    "matcher": "Bash|bash",
+    "hooks": [{ "type": "command", "command": "lean-ctx hook rewrite" }]
+  },
+  {
+    "matcher": "Read|read|ReadFile|read_file|View|view|Grep|grep|Search|search|ListFiles|list_files|ListDirectory|list_directory",
+    "hooks": [{ "type": "command", "command": "lean-ctx hook redirect" }]
+  }
+]
+```
+
+**Rewrite hook** (`lean-ctx-rewrite.sh`): Intercepts `Bash` tool calls. When the command matches a known tool (git, npm, cargo, docker, kubectl, gh, curl, grep, rg, find, cat, head, tail, ls, eslint, tsc, pytest, etc.), it rewrites the command to `lean-ctx -c "<original command>"` before execution. This means compressed output even from native Bash calls.
+
+**Redirect hook** (`lean-ctx-redirect.sh`): Currently a passthrough (`exit 0`). Native Read/Grep/ListFiles are allowed so that native `Edit` (which requires a prior native `Read`) continues to work. The MCP instructions guide Claude to prefer `ctx_read`/`ctx_search`/`ctx_tree` proactively.
+
+---
+
+## File Reference System
+
+lean-ctx assigns session-scoped IDs to every file read:
+
+```
+F1=settings.json 307L       ← assigned on first read
+F3=CLAUDE.md 27L            ← short ID persists for the session
+F91=lean-ctx-rewrite.sh 29L
+```
+
+- IDs are sequential and persist for the entire session.
+- Re-reads return only the stub (e.g., `F3=CLAUDE.md cached 2t 27L`) at ~13 tokens.
+- Pass `fresh=true` to force a full re-read bypassing the cache.
+- Pass `start_line=N` to read from a specific line — this also bypasses the cache stub.
+- All file IDs are listed in auto-checkpoints so subagents can reference them.
+
+---
+
+## Checkpoint System
+
+lean-ctx auto-checkpoints every 15 tool calls. A checkpoint includes:
+
+- All file IDs and their line counts/signatures
+- Current session state: version, duration, call count, total tokens saved
+- Compression stats (e.g., `COMPRESSION: 114339 → 1545 tok`)
+- Task complexity rating
+
+**Session state example:**
+```
+SESSION v356 | 61h 38m | 626 calls | 341516 tok saved
+Root: /Users/nikolassapalidis
+Files (50): [F3 CLAUDE.md full] [F5 settings.json full] ...
+```
+
+Manual checkpoint: `ctx_compress()` — use proactively in long conversations.
+
+---
+
+## Observability
+
+```bash
+lean-ctx gain           # visual dashboard (colors, bars, sparklines, USD cost saved)
+lean-ctx gain --live    # live auto-updating dashboard
+lean-ctx gain --graph   # 30-day savings chart
+lean-ctx gain --daily   # day-by-day breakdown
+lean-ctx dashboard      # web dashboard at http://localhost:3333
+lean-ctx wrapped        # weekly savings report card
+lean-ctx sessions list  # all CCP sessions
+lean-ctx tee last       # last compressed output
+lean-ctx discover       # find uncompressed commands in history
+lean-ctx doctor         # check PATH, config, MCP, dashboard port
+lean-ctx gotchas list   # auto-detected error patterns (Bug Memory)
+lean-ctx buddy          # Token Guardian: data-driven coding companion
+```
+
+---
+
+## Environment Variables
+
+| Variable | Effect |
+|---|---|
+| `LEAN_CTX_DISABLED=1` | Bypass ALL compression + prevent shell hook from loading |
+| `LEAN_CTX_ENABLED=0` | Prevent shell hook auto-start (lean-ctx-on still works) |
+| `LEAN_CTX_RAW=1` | Skip compression for current command (same as `--raw`) |
+| `LEAN_CTX_AUTONOMY=false` | Disable autonomous background features |
+| `LEAN_CTX_COMPRESS=1` | Force compression even for excluded commands |
+
+Shell aliases (after `lean-ctx init --global`): `lean-ctx-on`, `lean-ctx-off`, `lean-ctx-status`.
+
+---
+
+## Rules Summary
+
+1. **Always use `ctx_read` over native `Read`** for any file you only need to read.
+2. **Always use `ctx_shell` over native `Bash`** for shell commands that produce output.
+3. **Always use `ctx_search` over native `Grep`** for code searches.
+4. **Always use `ctx_tree` over `ls`/`find`** for directory orientation.
+5. **Never replace `Edit`/`Write`/`Delete`/`Glob`** — lean-ctx does not touch write operations.
+6. **If `Edit` fails** because it needs a prior `Read` → switch to `ctx_edit` immediately. Never loop.
+7. **`fresh=true`** when running as a subagent that may not share the parent agent's cache.
+8. **Use `ctx_session(action=load)`** at the start of a continuation session to restore ~400 tokens of prior context.
+9. **Use `ctx_knowledge(action=wakeup)`** for a compact AAAK briefing when resuming a project.
+10. **Use `ctx_semantic_search`** when exact-match regex search (`ctx_search`) misses conceptual code relationships.

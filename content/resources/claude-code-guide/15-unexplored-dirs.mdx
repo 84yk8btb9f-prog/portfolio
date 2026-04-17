@@ -1,0 +1,437 @@
+---
+title: "15 — Unexplored Directories"
+date: "2026-04-16"
+description: "The folders under ~/.claude/ that most people never touch, and why."
+order: 15
+tags: ["claude-code", "guide"]
+---
+
+A reference for every directory and file in `~/.claude/` that hasn't been covered in earlier sections.
+
+---
+
+## `~/.claude/keybindings.json`
+
+**Status:** Does not exist (file not present at time of writing).
+
+**Purpose:** Custom keyboard shortcuts for the Claude Code TUI. When created, it maps key combinations to Claude Code actions. Managed by the user or the `keybindings-help` skill. Format: JSON array of binding objects.
+
+**How to create:** Run `/keybindings-help` or create the file manually.
+
+---
+
+## `~/.claude/templates/`
+
+**Path:** `~/.claude/templates/CLAUDE.md`
+**Managed by:** User (manually maintained)
+**Format:** Markdown
+
+A single starter template for new project `CLAUDE.md` files. Contains placeholders for:
+- Project overview + stack
+- Dev commands (`npm run dev`, `build`, `test`, `lint`, `typecheck`)
+- Project structure notes
+- Constraints and conventions
+
+**Use case:** Copy this into any new project's root as `CLAUDE.md` and fill in the blanks. It is not auto-applied — it's a reference scaffold.
+
+---
+
+## `~/.claude/channels/`
+
+**Path:** `~/.claude/channels/telegram/`
+**Files:** `access.json`, `bot.pid`, `approved/` (empty)
+**Managed by:** `telegram` plugin (claude-plugins-official)
+**Format:** JSON + PID file
+
+Stores Telegram bot integration state:
+- `access.json` — allowed senders, DM policy, group/pending maps
+- `bot.pid` — running bot process ID
+- `approved/` — approved message threads (empty = none approved yet)
+
+**Retention:** Lives as long as the Telegram plugin is active. Safe to delete if reinstalling the plugin.
+
+---
+
+## `~/.claude/docs/`
+
+**Path:** `~/.claude/docs/`
+**Structure:**
+```
+docs/
+  crewai/           ← cached CrewAI documentation (README, concepts, quickstart, etc.)
+  superpowers/
+    plans/          ← 8 files, plan fragments for the superpowers skill
+```
+**Managed by:** Plugins (superpowers, context7, etc.) + user
+**Format:** Markdown
+
+A local docs cache. The `crewai/` subtree contains cloned CrewAI documentation fetched by a plugin or context7. The `superpowers/plans/` subfolder holds contextual plan fragments (0-byte filenames used as labels/anchors).
+
+**Retention:** Safe to clean `crewai/` if stale. `superpowers/plans/` is auto-managed.
+
+---
+
+## `~/.claude/plans/`
+
+**Count:** 17 files
+**Managed by:** `superpowers:writing-plans` skill (auto-generated names)
+**Format:** Markdown with task checklists
+
+Each file is a full implementation plan produced by the planning skill. File names are randomly generated slugs (`rosy-leaping-firefly.md`, `idempotent-stirring-flask.md`, etc.) to avoid collisions.
+
+**Structure of a plan file:**
+```markdown
+# [Feature Title]
+## Context
+[Why this plan was created]
+## File Map
+| File | Action |
+## Steps
+- [ ] Step 1
+- [ ] Step 2
+```
+
+**Retention concern:** Plans accumulate indefinitely. Periodically prune completed plans. No automatic cleanup — 17 files already present.
+
+---
+
+## `~/.claude/session-handoffs/`
+
+**Status:** Empty (0 files)
+**Managed by:** `save-session` / `wrap-up` skills or manual `/wrap-up`
+**Format:** Markdown (when populated)
+
+Intended to store cross-session handoff notes — a summary written at the end of one session so the next session can resume context. Currently empty because the main vault (`MyVault/02-Projects/Claude Sessions/`) is used instead.
+
+---
+
+## `~/.claude/sessions/`
+
+**Count:** 9 JSON files (flat, not subdirectories)
+**Managed by:** Claude Code core
+**Format:** JSON
+
+Each file is keyed by a numeric PID-like ID (e.g. `24010.json`). Contents:
+```json
+{"pid": ..., "sessionId": "uuid", "cwd": "/path", "startedAt": "ISO", "kind": "...", "entrypoint": "cli"}
+```
+
+Tracks active/recent Claude Code process sessions. Used for session resumption and multi-agent coordination. Auto-purged when processes exit.
+
+---
+
+## `~/.claude/tasks/`
+
+**Count:** 2 JSON files
+**Managed by:** Claude Code SDK / agent task system
+**Format:** JSON
+
+Each file is named `{uuid}-agent-{uuid}.json`. Stores the state of a dispatched agent task — used by the SDK's managed agent infrastructure for tracking parallel agent runs.
+
+---
+
+## `~/.claude/todos/`
+
+**Count:** 2 files (one per active session UUID)
+**Managed by:** Claude Code core (TodoWrite/TodoRead tools)
+**Format:** JSON arrays
+
+Stores in-session TODO lists. Each session gets its own file. Contents are an array of todo items with `id`, `content`, `status` (`pending`/`in_progress`/`completed`), and `priority` fields.
+
+**Retention:** Cleared when a session ends or `/compact` is run. Empty arrays (`[]`) are common.
+
+---
+
+## `~/.claude/logs/`
+
+**Status:** Empty directory (created Mar 24)
+**Managed by:** Claude Code core (reserved)
+
+Reserved for future structured log output. Currently unused — telemetry goes to `~/.claude/telemetry/` instead.
+
+---
+
+## `~/.claude/telemetry/`
+
+**Count:** 3 JSON files (`1p_failed_events.*.json`)
+**Managed by:** Claude Code core (Statsig/telemetry pipeline)
+**Format:** JSONL — one `ClaudeCodeInternalEvent` object per line
+
+Stores telemetry events that **failed to upload** to Anthropic's pipeline (e.g., due to network errors). Each event contains:
+- `event_name` (e.g., `tengu_config_cache_stats`, `tengu_mcp_server_connection_failed`, `tengu_run_hook`)
+- Session ID, model, betas, env metadata
+- Auth UUIDs, device ID, email
+- Base64-encoded `additional_metadata` payload
+
+**Privacy note:** Contains your email, account UUID, and session data. Anthropic retries these uploads on next run.
+
+**Retention:** Auto-purged after successful retry. Files linger only on persistent upload failures.
+
+---
+
+## `~/.claude/usage-data/`
+
+**Structure:**
+```
+usage-data/
+  report.html          ← full "Claude Code Insights" HTML dashboard
+  facets/              ← 100 JSON files (per-facet usage breakdowns)
+  session-meta/        ← 400 JSON files (per-session metadata)
+```
+**Managed by:** Claude Code core (generated periodically)
+**Format:** HTML + JSON
+
+`report.html` is a self-contained interactive HTML dashboard ("Claude Code Insights") showing usage patterns. `facets/` and `session-meta/` provide the underlying data.
+
+**Size concern:** 500+ files. Grows over time. Safe to delete — regenerated on next run.
+
+---
+
+## `~/.claude/debug/`
+
+**Count:** 5 `.txt` files
+**Managed by:** Claude Code core (IDE/subagent debug layer)
+**Format:** Plain text log
+
+Contains low-level query stream logs from the IDE integration layer:
+```
+[Query.streamInput] Starting to process input stream
+[Query.streamInput] Processing message 1: user
+[Query] Calling transport.endInput() to close stdin to CLI process
+```
+
+Useful for diagnosing stuck subagent pipelines or IDE transport failures. Auto-rotated.
+
+---
+
+## `~/.claude/ide/`
+
+**Status:** Empty (no subdirectories with content)
+**Managed by:** Claude Code IDE extensions (VS Code, JetBrains, etc.)
+
+Stores IDE integration state — active connection info, port bindings, workspace mappings. Empty here because no IDE extension is currently connected.
+
+---
+
+## `~/.claude/shell-snapshots/`
+
+**Count:** 9 snapshot files
+**Naming:** `snapshot-zsh-{timestamp}-{random}.sh`
+**Managed by:** Claude Code core
+**Format:** Bash/zsh shell script
+
+Each file captures a full shell environment state before a Claude Code session: unaliased functions, environment variables, PATH, shell functions (including bun completions, custom functions). Used to restore a clean shell environment when spawning subshells for tool execution.
+
+**Retention concern:** 9 files, grow per session. Safe to prune old ones manually.
+
+---
+
+## `~/.claude/paste-cache/`
+
+**Count:** 5 `.txt` files + a `latest` symlink
+**Managed by:** Claude Code core
+**Format:** JSONL
+
+Each `.txt` file stores a history of slash-commands and paste events from a session:
+```json
+{"display": "/usage", "pastedContents": {}, "timestamp": 1773555048425, "project": "/path", "sessionId": "uuid"}
+```
+
+`latest` symlinks to the most recent session's paste file. Total: ~19,827 lines across all files.
+
+**Retention concern:** Grows unboundedly. Safe to clear old session files.
+
+---
+
+## `~/.claude/cache/`
+
+**Content:** `changelog.md` (3,090 lines)
+**Managed by:** Claude Code core (plugin system)
+**Format:** Markdown
+
+A cached copy of the Claude Code / plugin system changelog. Fetched from upstream on plugin updates. Single file — low maintenance overhead.
+
+---
+
+## `~/.claude/backups/`
+
+**Status:** Empty (0 files)
+**Managed by:** Claude Code core (reserved for settings/config backups)
+
+Reserved directory for automatic backups of `settings.json` and other config before destructive changes. Currently unused — `.lean-ctx.bak` files in the root serve a similar purpose via the lean-ctx plugin.
+
+---
+
+## `~/.claude/file-history/`
+
+**Count:** 115 subdirectories (UUID-named)
+**Structure per dir:** Multiple versioned files named `{hash}@v{N}`
+**Managed by:** Claude Code core (Edit tool versioning)
+**Format:** Raw file content snapshots
+
+Stores pre-edit snapshots of every file Claude has modified, keyed by a content hash. Each UUID directory = one file path that was edited. Versions accumulate (`@v1`, `@v2`, etc.).
+
+**Size concern:** Largest directories have 516 versions (e.g., one heavily-iterated file). Grows indefinitely. No automatic pruning. Consider periodic cleanup.
+
+---
+
+## `~/.claude/statsig/`
+
+**Files:**
+- `statsig.stable_id.2656274335` — persistent anonymous device ID (UUID string)
+- `statsig.session_id.2656274335` — JSON: `{"sessionID": "uuid", "startTime": ms, "lastUpdate": ms}`
+- `statsig.failed_logs.2656274335` — queued failed telemetry log events
+
+**Managed by:** Statsig SDK (embedded in Claude Code)
+**Format:** Plain text UUID / JSON
+
+Used by Claude Code's feature flag and A/B testing system (Statsig). The `stable_id` is a persistent pseudonymous identifier tied to your installation (not your account). `session_id` rotates per session.
+
+**Privacy note:** `stable_id` persists across reinstalls unless manually deleted.
+
+---
+
+## `~/.claude/plugins/blocklist.json`
+
+**Managed by:** Claude Code core (plugin safety system)
+**Format:** JSON
+
+```json
+{
+  "fetchedAt": "2026-04-08T20:53:36.792Z",
+  "plugins": [
+    {
+      "plugin": "code-review@claude-plugins-official",
+      "added_at": "...",
+      "reason": "just-a-test",
+      "text": "This is a test #5"
+    },
+    {
+      "plugin": "fizz@testmkt-marketplace",
+      "added_at": "...",
+      "reason": "security",
+      "text": "this is a security test"
+    }
+  ]
+}
+```
+
+Lists plugins that are blocked from installation. The first entry appears to be a test entry from Anthropic's plugin safety pipeline (not a real block). The second is a security test entry.
+
+**User action:** You can manually add entries here to block specific plugins system-wide.
+
+---
+
+## `~/.claude/plugins/known_marketplaces.json`
+
+**Managed by:** Claude Code core (plugin registry)
+**Format:** JSON
+
+Maps marketplace IDs to their metadata:
+```json
+{
+  "anthropic-agent-skills": { "installLocation": "...", "lastUpdated": "...", "source": { "repo": "...", "source": "github" } },
+  "claude-plugins-official": { ... },
+  "context-engineering-marketplace": { ... },
+  ...
+}
+```
+
+8 registered marketplaces total:
+1. `anthropic-agent-skills`
+2. `claude-plugins-official`
+3. `context-engineering-marketplace`
+4. `coreyhaines31`
+5. `interface-design`
+6. `sequenzia`
+7. `superpowers-marketplace`
+8. `thedotmack`
+
+**Managed by:** Claude Code core — updated on `claude plugins update`.
+
+---
+
+## `~/.claude/plugins/install-counts-cache.json`
+
+**Managed by:** Claude Code core (marketplace UI)
+**Format:** JSON with `version`, `fetchedAt`, and `counts` array
+
+Cached install popularity data fetched from the Claude marketplace API. Each entry:
+```json
+{"plugin": "frontend-design@claude-plugins-official", "unique_installs": 564908}
+```
+
+Top plugins by installs (as of last fetch):
+1. `frontend-design` — 564,908
+2. `superpowers` — 476,245
+3. `context7` — 268,967
+4. `code-review` — 255,208
+5. `code-simplifier` — 212,147
+
+Used to rank and display plugins in the marketplace browser. Refreshed periodically.
+
+---
+
+## `~/.claude/history.jsonl`
+
+**Size:** 582 KB, 2,357 lines
+**Managed by:** Claude Code core
+**Format:** JSONL
+
+Per-line schema:
+```json
+{"display": "/usage", "pastedContents": {}, "timestamp": 1773555048425, "project": "/Users/...", "sessionId": "uuid"}
+```
+
+The complete command history for the Claude Code TUI — every slash command typed, every input submitted, across all sessions. The `display` field holds the raw text typed (including typos like `"eixt"`). `pastedContents` captures any pasted file/text content.
+
+**Retention concern:** At 582 KB after moderate use — will grow to several MB over time. No automatic rotation. Safe to truncate if performance degrades.
+
+---
+
+## `~/.claude/.caveman-active`
+
+**Size:** 4 bytes — contains the string `lite`
+**Managed by:** A plugin or hook (likely `quieter` / a custom caveman-mode flag)
+**Format:** Plain text flag file
+
+Presence of this file signals that "caveman mode" is active — a stripped-down, minimal-output mode that suppresses verbose UI elements. The value `lite` suggests a partial/lite variant of caveman mode rather than full suppression.
+
+**User action:** Delete this file to disable caveman mode, or check the hook that writes it.
+
+---
+
+## `~/.claude/stats-cache.json`
+
+**Size:** 10.3 KB
+**Managed by:** Claude Code core (usage dashboard)
+**Format:** JSON
+
+Top-level keys:
+```
+version, lastComputedDate, dailyActivity, dailyModelTokens,
+modelUsage, totalSessions, totalMessages, longestSession,
+firstSessionDate, hourCounts, totalSpeculationTimeSavedMs
+```
+
+A pre-computed stats snapshot used to render the `/usage` dashboard instantly without re-scanning `history.jsonl` on every open. Recomputed incrementally when new sessions close.
+
+**Interesting fields:**
+- `totalSpeculationTimeSavedMs` — tracks time saved by speculative/cached responses
+- `hourCounts` — activity heatmap by hour of day
+- `dailyModelTokens` — per-model token breakdown per day
+
+---
+
+## Summary: Retention Recommendations
+
+| Path | Risk | Action |
+|---|---|---|
+| `~/.claude/file-history/` | Grows indefinitely (115+ dirs, 516 versions in one) | Prune quarterly |
+| `~/.claude/paste-cache/` | 19,827 lines across 5 files | Archive old session files |
+| `~/.claude/history.jsonl` | 582 KB, no rotation | Truncate when >5 MB |
+| `~/.claude/usage-data/` | 500+ files | Delete freely — regenerated |
+| `~/.claude/plans/` | 17 files, grows with planning work | Delete completed plans |
+| `~/.claude/shell-snapshots/` | 9 files, 1 per session | Keep last 3, prune rest |
+| `~/.claude/telemetry/` | Failed events, auto-retried | Low risk, auto-clears |
+| `~/.claude/statsig/` | `stable_id` persists forever | Leave unless privacy concern |

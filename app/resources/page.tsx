@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
-import { getItems } from "@/lib/content";
+import { getTree } from "@/lib/content";
 
 export default function ResourcesIndex() {
-  const items = getItems("resources");
-  if (items.length > 0) redirect(`/resources/${items[0].slug}`);
+  const tree = getTree("resources");
+  const first = tree.files[0] ?? tree.folders[0]?.items[0];
+  if (first) redirect(`/resources/${first.slug}`);
 
   return (
     <div className="p-12 text-sm font-mono text-shell-muted">

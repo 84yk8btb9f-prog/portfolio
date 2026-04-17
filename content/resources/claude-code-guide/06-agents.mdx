@@ -1,0 +1,505 @@
+---
+title: "06 — Custom Agents"
+date: "2026-04-16"
+description: "Custom agents in ~/.claude/agents/ — specialists, model routing, and delegation."
+order: 6
+tags: ["claude-code", "guide"]
+---
+
+All agents live in `~/.claude/agents/`. Each is a Markdown file with YAML frontmatter (`name`, `description`, `tools`, `model`, `color`) followed by the prompt body.
+
+---
+
+## 1. Orchestration & Planning
+
+### orchestrator
+- **Model:** opus | **Color:** purple
+- **Tools:** Read, Glob, Grep, Bash, Edit, Write, Agent
+- **Trigger:** Any complex, multi-step, cross-domain task. Default entry point for big work.
+- **Capabilities:**
+  - Classifies tasks as Simple / Medium / Complex and skips unnecessary agents for simple ones
+  - Writes explicit phased execution plans before delegating anything
+  - Delegates to all specialist agents and skills; enforces quality gates between phases
+  - Compresses context before each handoff (never forwards raw output)
+  - Follows standard playbooks: New Feature, Bug Fix, Refactor, Deploy, Research+Decision, Security Audit
+  - Post-task self-improvement: reflects on each agent/skill used and proposes edits to improve them
+- **Limitations:** Does not implement complex features itself; for simple tasks it acts inline
+- **Typical inputs:** Plain-English task description; relevant file paths if known
+- **Notable patterns:** Parallel delegation only when phases are truly independent; quality gates block advancement on CRITICAL review findings; ends every session with `/wrap-up`
+
+---
+
+### architect
+- **Model:** opus | **Color:** purple
+- **Tools:** Read, Grep, Glob (read-only)
+- **Trigger:** Planning new features, refactoring large systems, or making architectural decisions
+- **Capabilities:**
+  - Current-state analysis: reviews existing architecture, identifies patterns, technical debt, scalability limits
+  - Produces trade-off analysis (pros/cons/alternatives/decision) for every design choice
+  - Creates Architecture Decision Records (ADRs) in standard format
+  - Provides scalability roadmaps (10K → 100K → 1M → 10M users)
+  - Flags anti-patterns: Big Ball of Mud, God Object, Premature Optimization, Analysis Paralysis
+- **Limitations:** Read-only (no Edit/Write tools); produces recommendations only
+- **Typical inputs:** Description of what needs to be built or changed; relevant existing code paths
+
+---
+
+### harness-optimizer
+- **Model:** sonnet | **Color:** teal
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash
+- **Trigger:** Improving agent harness reliability, cost, or throughput
+- **Capabilities:**
+  - Runs `/harness-audit` and collects baseline score
+  - Identifies top-3 leverage areas: hooks, evals, routing, context, safety
+  - Proposes minimal reversible config changes and measures before/after deltas
+- **Limitations:** Targets harness config only, not product code; preserves cross-platform behavior
+- **Typical inputs:** Current harness state; identified pain points
+
+---
+
+### loop-operator
+- **Model:** sonnet | **Color:** orange
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash
+- **Trigger:** Running or monitoring autonomous agent loops
+- **Capabilities:**
+  - Starts loops from explicit patterns with clear stop conditions
+  - Tracks progress checkpoints; detects stalls and retry storms
+  - Pauses and reduces scope on repeated failure; resumes only after verification
+  - Requires quality gates, eval baseline, rollback path, and branch/worktree isolation before starting
+- **Escalation triggers:** No progress across two checkpoints; identical stack-trace failures; cost drift; merge conflicts
+
+---
+
+### research
+- **Model:** sonnet | **Color:** green
+- **Tools:** Read, Glob, Grep, WebSearch, WebFetch
+- **Trigger:** Investigations requiring many searches, reading docs, or exploring large codebases without polluting parent context
+- **Capabilities:**
+  - Breaks question into sub-questions, searches multiple angles
+  - Cites every claim with URL, file path, or line number
+  - Distinguishes fact from inference
+  - Writes structured output (Answer / Key Findings / Details) to a provided file path
+- **Limitations:** Outputs to file; concise summary only — not a novel
+- **Typical inputs:** Research question or investigation task; optional starting URLs or file paths
+
+---
+
+## 2. Implementation
+
+### frontend
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash
+- **Trigger:** Building or modifying UI components, pages, layouts, or styling
+- **Capabilities:**
+  - Auto-adapts to project framework (React/Next.js/Vue/Svelte/Astro) and CSS approach (Tailwind/CSS Modules/Styled Components)
+  - Reads 2-3 existing components to mirror naming, export, and prop patterns
+  - Enforces Server Component defaults in Next.js App Router; avoids unnecessary `"use client"`
+  - Applies design-dna rules: no emojis, no gradient backgrounds, physics-based animations, Apple-level polish
+  - Checks `~/.claude/projects/-Users-nikolassapalidis/memory/design_preferences.md` for accumulated preferences
+- **Limitations:** Can edit files; does not review its own output (use reviewer or design-review after)
+- **Typical inputs:** Feature description; relevant component/page file paths; design system reference
+
+---
+
+### backend
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash
+- **Trigger:** Building or modifying API routes, server logic, middleware, authentication, or data processing
+- **Capabilities:**
+  - Auto-detects language, framework, ORM, and auth approach from project files
+  - Reads `.env.example` for required environment variables
+  - Enforces secure patterns: parameterized queries, httpOnly cookies for JWTs, input validation via project's library, global error handler
+  - Keeps database logic in a separate layer (repositories/services); never mixes it with route handlers
+- **Limitations:** Can edit files; expects a separate database agent for schema work
+- **Typical inputs:** API spec or feature description; relevant route/middleware file paths
+
+---
+
+### database
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash
+- **Trigger:** Schema design, writing migrations, query optimization, or troubleshooting database issues
+- **Capabilities:**
+  - Supports Prisma, Drizzle, Knex, SQLAlchemy, GORM, and raw SQL
+  - Enforces schema conventions: UUIDs for public IDs, snake_case, plural table names, `created_at`/`updated_at`, NOT NULL by default
+  - Writes safe staged migrations (never drops columns and adds them in the same deploy)
+  - Supabase-specific: RLS on every table, `(SELECT auth.uid())` pattern, generated TypeScript types
+  - Handles soft deletes, audit logs, full-text search with `tsvector`, cursor pagination
+- **Limitations:** Can edit files; does not review security of generated queries (use database-reviewer)
+- **Typical inputs:** Schema requirements or existing schema file; ORM in use; migration naming conventions
+
+---
+
+### build
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash | **permissionMode:** acceptEdits | **maxTurns:** 25
+- **Trigger:** Build failures, TypeScript errors, lint failures, or code quality issues
+- **Capabilities:**
+  - Auto-detects toolchain: tsc, Next.js, Vite, Turbo, ESLint, Prettier, monorepo setup
+  - Fixes root causes (not downstream symptoms); runs check again after every fix
+  - Handles common TS errors: TS2307, TS2345, TS2339, TS7006, TS2322, TS6133
+  - Installs missing `@types/*` packages when needed; never changes tsconfig strictness without explicit ask
+- **Limitations:** Keeps fixes minimal; does not refactor while fixing; accepts edits automatically (no prompt per file)
+- **Typical inputs:** Error output; build command; relevant tsconfig/eslint config paths
+
+---
+
+## 3. Review (Read-Only)
+
+### reviewer
+- **Model:** sonnet | **Color:** yellow
+- **Tools:** Read, Glob, Grep, Bash | **disallowedTools:** Edit, Write
+- **Trigger:** After writing or modifying code — catches bugs, security issues, style violations
+- **Capabilities:**
+  - Reads lint/tsconfig/CONTRIBUTING.md before reviewing to avoid false positives
+  - Uses `git diff HEAD` or `git diff main...HEAD` as review scope
+  - Organizes findings by severity: CRITICAL → HIGH → MEDIUM → LOW
+  - Includes file path, line number, what the problem is, why it matters, and a specific fix
+- **Limitations:** Strictly read-only; focuses on the diff, not pre-existing issues
+- **Typical inputs:** Changed file paths or a branch name
+
+---
+
+### security-reviewer
+- **Model:** sonnet | **Color:** yellow
+- **Tools:** Read, Glob, Grep, Bash (read-only)
+- **Trigger:** After writing code that handles user input, authentication, API endpoints, or sensitive data
+- **Capabilities:**
+  - Full OWASP Top 10 checklist with severity ratings
+  - Runs `npm audit` and `eslint-plugin-security`
+  - Flags hardcoded secrets, SSRF, injection, unsafe crypto, missing rate limits, balance checks without locks
+  - Emergency response protocol for CRITICAL findings
+- **Limitations:** Read-only; references `security-review` skill for detailed patterns
+- **Typical inputs:** File paths for changed code; framework in use
+
+---
+
+### python-reviewer
+- **Model:** sonnet | **Color:** yellow
+- **Tools:** Read, Grep, Glob, Bash (read-only)
+- **Trigger:** All Python code changes; mandatory for Python projects
+- **Capabilities:**
+  - Runs `git diff -- '*.py'` then static tools: ruff, mypy, pylint, black --check, bandit
+  - CRITICAL checks: SQL injection via f-strings, bare `except`, mutable default arguments, unsafe deserialization
+  - HIGH checks: missing type hints, non-Pythonic patterns, N+1 queries, concurrency issues
+  - Framework-specific: Django N+1 / atomic(), FastAPI CORS / Pydantic, Flask CSRF
+  - Approval criteria: Approve (no CRITICAL/HIGH), Warning (MEDIUM only), Block (CRITICAL/HIGH)
+- **Limitations:** Read-only; references `python-patterns` skill for detailed examples
+
+---
+
+### typescript-reviewer
+- **Model:** sonnet | **Color:** yellow
+- **Tools:** Read, Grep, Glob, Bash (read-only)
+- **Trigger:** All TypeScript/JavaScript code changes; mandatory for TS/JS projects
+- **Capabilities:**
+  - Establishes review scope from PR base branch or `git diff --staged` (does not hard-code `main`)
+  - Checks CI merge readiness via `gh pr view` before reviewing a PR
+  - Runs project's canonical typecheck command; falls back to `tsc --noEmit` scoped to affected tsconfig
+  - CRITICAL: eval/innerHTML injection, SQL injection, prototype pollution, path traversal
+  - HIGH: `any` abuse, non-null assertion abuse, unhandled promises, `async forEach`, swallowed errors
+  - MEDIUM: React hook dependency arrays, key prop issues, N+1, large bundle imports
+- **Limitations:** Read-only; does not refactor or rewrite
+
+---
+
+### database-reviewer
+- **Model:** sonnet | **Color:** yellow
+- **Tools:** Read, Glob, Grep, Bash (read-only)
+- **Trigger:** Writing SQL, creating migrations, designing schemas, or troubleshooting DB performance
+- **Capabilities:**
+  - Runs `EXPLAIN ANALYZE` on complex queries; checks `pg_stat_statements` for slow queries
+  - Flags: missing indexes on FK columns, `SELECT *`, `int` IDs (use `bigint`), `timestamp` without timezone, OFFSET pagination, unparameterized queries, `GRANT ALL`
+  - Enforces RLS on multi-tenant tables with `(SELECT auth.uid())` pattern
+  - Recommends: partial indexes, covering indexes (`INCLUDE`), `SKIP LOCKED` for queues, cursor pagination
+- **Limitations:** Read-only; references `postgres-patterns` and `database-migrations` skills
+
+---
+
+### design-review
+- **Model:** sonnet | **Color:** pink
+- **Tools:** Read, Glob, Grep, Bash + full Playwright MCP browser toolset
+- **Trigger:** UI pull requests or changes needing comprehensive visual and UX review
+- **Capabilities:**
+  - "Live Environment First" principle — always assesses interactive experience before static analysis
+  - 7-phase review: Interaction → Responsiveness (1440/768/375px) → Visual Polish → Accessibility (WCAG 2.1 AA) → Robustness → Code Health → Content/Console
+  - Takes screenshots as evidence for visual findings
+  - Classifies issues: Blocker / High-Priority / Medium-Priority / Nitpick
+  - Checks keyboard navigation, focus states, color contrast (4.5:1), semantic HTML
+- **Limitations:** Requires a live preview environment (local dev server or preview URL)
+- **Typical inputs:** PR number or description of UI changes; base URL of running app
+
+---
+
+## 4. Debug & Test
+
+### debugger
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash | **maxTurns:** 30
+- **Trigger:** Errors, test failures, unexpected behavior, or performance issues
+- **Capabilities:**
+  - Strict workflow: Capture error → Identify affected files → Hypothesis → Verify → Minimal fix → Re-run
+  - Reads stack traces bottom-to-top; finds first frame pointing to project code
+  - Strategic debugging: bisect pipelines, compare working vs broken via `git log`, check external deps
+  - Performance debugging: missing indexes, memory leaks, React re-render issues
+  - Suggests regression tests after fixing
+- **Limitations:** Keeps fixes minimal; does not refactor while debugging; escalates after 3 failed hypothesis cycles
+- **Typical inputs:** Full error/stack trace; failing test path; steps to reproduce
+
+---
+
+### qa
+- **Model:** sonnet | **Color:** orange
+- **Tools:** Read, Write, Bash
+- **Trigger:** Validating code correctness before shipping; generating and running tests for a snippet
+- **Capabilities:**
+  - Reads code, writes tests (happy path, edge cases, error cases), runs them, reports PASS/FAIL
+  - Supports Python (pytest), JavaScript/TypeScript (vitest/node --test), Bash
+  - Mocks side effects (file I/O, network); never modifies original code
+  - Outputs structured report: Test Results / Test Cases / Failures / Notes
+- **Limitations:** Works on a code snippet level; does not modify source files
+- **Typical inputs:** Code file path or inline snippet; optional output file path
+
+---
+
+### tdd-guide
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash
+- **Trigger:** Writing new features, fixing bugs, or refactoring — enforces write-tests-first
+- **Capabilities:**
+  - Enforces Red-Green-Refactor cycle; verifies failing test before implementation
+  - Targets 80%+ coverage: branches, functions, lines, statements
+  - Requires unit + integration tests always; E2E for critical paths
+  - Must-test edge cases: null/undefined, empty, boundary values, race conditions, large data, special characters
+  - v1.8 addendum: integrates eval-driven development; targets pass^3 stability for release-critical paths
+- **Limitations:** References `tdd-workflow` skill for framework-specific examples
+- **Typical inputs:** Feature description or function signature to be implemented
+
+---
+
+### e2e-runner
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash + full Playwright MCP browser toolset
+- **Trigger:** Generating, maintaining, or running E2E tests for critical user flows
+- **Capabilities:**
+  - Primary: Agent Browser CLI; fallback: Playwright (`npx playwright test`)
+  - Page Object Model pattern; prefers `data-testid` locators
+  - Manages flaky tests with `test.fixme()` quarantine
+  - Captures screenshots, videos, traces as CI artifacts
+  - Success metrics: 100% critical journeys passing, >95% overall, &lt;5% flaky, &lt;10min duration
+- **Limitations:** References `e2e-testing` skill for detailed Playwright patterns
+- **Typical inputs:** App URL; list of critical user journeys to test
+
+---
+
+## 5. Cleanup
+
+### refactor-cleaner
+- **Model:** sonnet | **Color:** blue
+- **Tools:** Read, Write, Edit, Bash, Grep, Glob
+- **Trigger:** Removing unused code, duplicates, and dead exports (NOT during active feature dev or pre-deploy)
+- **Capabilities:**
+  - Runs detection tools in parallel: knip, depcheck, ts-prune, eslint unused-disable-directives
+  - Categorizes by risk: SAFE (unused exports/deps) → CAREFUL (dynamic imports) → RISKY (public API)
+  - Removes one category at a time; runs tests and commits after each batch
+  - Consolidates duplicates by choosing the most complete/tested implementation
+- **Limitations:** Conservative by design — when in doubt, does not remove; should not run right before deploys
+- **Typical inputs:** Project root; specific areas to clean or run tools across the whole codebase
+
+---
+
+## 6. Git & Ops
+
+### git
+- **Model:** haiku | **Color:** cyan
+- **Tools:** Read, Glob, Grep, Bash | **disallowedTools:** Edit, Write
+- **Trigger:** Branch management, commits, PRs, conflict resolution, history cleanup
+- **Capabilities:**
+  - Reads commit log to match message style; follows project's branch naming conventions
+  - Stages specific files by name (never `git add .` to avoid capturing secrets)
+  - Creates PRs via `gh pr create` with Summary + Test plan format
+  - For conflicts: describes the conflict and both sides, but cannot edit files (caller must resolve)
+  - Safety rules: never force-pushes to main, never `reset --hard` without confirmation, always backs up with a branch before destructive operations
+- **Limitations:** Strictly read-only for file editing; cannot run interactive git commands (`-i` flag)
+- **Typical inputs:** Task description (commit, branch, PR); target branch name
+
+---
+
+## 7. Deployment
+
+### vercel
+- **Model:** haiku | **Color:** cyan
+- **Tools:** Read, Glob, Grep, Bash
+- **Trigger:** Deploying to Vercel, managing deployments, debugging build/runtime failures, domain config
+- **Capabilities:**
+  - Full Vercel CLI: deploy, inspect, logs, rollback, bisect, env vars, domains
+  - Debugging workflow: `vercel list` → `vercel inspect --logs` → `vercel logs --follow` → `vercel bisect`
+  - Common failure patterns: env vars not set (#1 cause), module not found (case sensitivity), serverless timeouts, edge runtime limitations
+  - Notes optional Vercel MCP for read-only monitoring
+- **Typical inputs:** Project directory; Vercel project name if known; failing deployment URL
+
+---
+
+### railway
+- **Model:** haiku | **Color:** cyan
+- **Tools:** Read, Glob, Grep, Bash
+- **Trigger:** Deploying to Railway, managing services, checking logs, configuring variables
+- **Capabilities:**
+  - Full Railway CLI: `railway up`, `railway logs`, `railway variable`, `railway connect` (DB shell), `railway ssh`
+  - Key gotchas: app must listen on `process.env.PORT`; project must be linked with `railway link`
+  - Supports adding Postgres/MySQL/Redis/Mongo databases via `railway add --database`
+  - Notes optional Railway MCP
+- **Typical inputs:** Project directory; Railway project/service name
+
+---
+
+### fly-io
+- **Model:** haiku | **Color:** cyan
+- **Tools:** Read, Glob, Grep, Bash
+- **Trigger:** Deploying to Fly.io, managing machines, scaling, checking logs
+- **Capabilities:**
+  - Full flyctl: deploy (canary/rolling/bluegreen/immediate strategies), `fly logs`, `fly scale`, `fly machine`, `fly volumes`, `fly ssh console`, `fly proxy` (port forwarding)
+  - Key gotchas: app must listen on `0.0.0.0:8080` (not localhost); health checks required; default 256MB RAM often too low
+  - Volumes are per-region and per-machine; must be declared in both `fly.toml` and created in the right region
+- **Typical inputs:** `fly.toml`; Dockerfile; target region
+
+---
+
+### netlify
+- **Model:** haiku | **Color:** cyan
+- **Tools:** Read, Glob, Grep, Bash
+- **Trigger:** Deploying to Netlify, managing sites, configuring functions, troubleshooting deploy issues
+- **Capabilities:**
+  - Full Netlify CLI: `netlify deploy`, `netlify dev`, `netlify env`, `netlify functions:create/invoke`, `netlify logs`
+  - SPA catch-all redirect pattern: `/* /index.html 200`
+  - Functions live in `netlify/functions/`; background functions (15min timeout) cannot return responses
+  - Notes optional Netlify MCP
+- **Typical inputs:** `netlify.toml`; publish directory; Node version
+
+---
+
+### cloudflare
+- **Model:** haiku | **Color:** cyan
+- **Tools:** Read, Glob, Grep, Bash
+- **Trigger:** Deploying Cloudflare Workers or Pages; managing KV, D1, R2, or Durable Objects
+- **Capabilities:**
+  - Full Wrangler CLI: Workers deploy, `wrangler tail` (live logs), `wrangler rollback`, Pages deploy
+  - Storage management: KV namespaces, D1 (SQLite-compatible), R2 buckets — all via Wrangler
+  - Key gotchas: binding must be declared in `wrangler.toml` after creation; D1 uses SQLite syntax; Workers 3MB size limit on free tier; `compatibility_date` controls runtime APIs
+  - Pages functions: must be in `functions/` directory; file path = route
+  - Notes Cloudflare MCP and Cloudflare as MCP hosting platform
+- **Typical inputs:** `wrangler.toml`; Worker or Pages project structure
+
+---
+
+## 8. Docs
+
+### doc-updater
+- **Model:** haiku | **Color:** blue
+- **Tools:** Read, Write, Edit, Bash, Grep, Glob
+- **Trigger:** Updating codemaps and documentation after code changes; runs `/update-codemaps` and `/update-docs`
+- **Capabilities:**
+  - Generates `docs/CODEMAPS/` structure: INDEX.md, frontend.md, backend.md, database.md, integrations.md, workers.md
+  - Each codemap includes: ASCII architecture diagram, key modules table, data flow, external dependencies
+  - Validates all file paths, links, and code examples after generation
+  - Keeps codemaps under 500 lines; includes freshness timestamps
+- **Limitations:** Generates from code (single source of truth); does not manually author docs
+- **Typical inputs:** Project root; areas that changed since last update
+
+---
+
+### docs-lookup
+- **Model:** sonnet | **Color:** green
+- **Tools:** Read, Grep, `mcp__context7__resolve-library-id`, `mcp__context7__query-docs`
+- **Trigger:** Questions about how to use a library, framework, or API; requests for up-to-date code examples
+- **Capabilities:**
+  - Uses Context7 MCP exclusively — never answers from training data alone
+  - Two-step workflow: resolve-library-id → query-docs (max 3 calls total per request)
+  - Returns concise answer with code snippet and source citation
+  - If Context7 unavailable, answers from knowledge with explicit caveat
+- **Limitations:** No web browsing; limited to Context7's library coverage
+- **Typical inputs:** Library/framework name; specific question (e.g., "How do I configure Next.js middleware?")
+
+---
+
+## 9. External / Utility
+
+### chief-of-staff
+- **Model:** opus | **Color:** purple
+- **Tools:** Read, Grep, Glob, Bash, Edit, Write
+- **Trigger:** Managing multi-channel communication workflows (email, Slack, LINE, Messenger, calendar)
+- **Capabilities:**
+  - 4-tier classification: skip → info_only → meeting_info → action_required
+  - Fetches all channels in parallel; cross-references meeting URLs with calendar
+  - Generates draft replies matching sender relationship tone from `private/relationships.md` and `SOUL.md`
+  - Post-send follow-through checklist: calendar events, relationship notes, todo updates, git commit of knowledge files
+  - Uses `PostToolUse` hook to enforce checklist at tool level (LLM cannot skip it)
+  - Calendar math (free-slot calculation) done via `calendar-suggest.js`, not the LLM
+- **Limitations:** Requires Gmail CLI, Node.js 18+; optional Slack MCP, Matrix bridge (LINE), Playwright (Messenger)
+- **Typical inputs:** Invocations via `/mail`, `/slack`, `/today`, `/schedule-reply`
+
+---
+
+### email-classifier
+- **Model:** sonnet | **Color:** orange
+- **Tools:** Read, Write
+- **Trigger:** Called by the `gmail-label` skill to classify email chunks in parallel
+- **Capabilities:**
+  - Reads a JSON chunk file (id, subject, from, date, snippet per email)
+  - Classifies each into exactly one of three categories: Action Required / Waiting On / Reference
+  - Outputs valid JSON only — no markdown, no commentary
+  - Detailed rules for each category (e.g., expiring credit cards → Action Required; marketing newsletters → Reference)
+- **Limitations:** Stateless relay; no Gmail API access itself; called as a subagent only
+- **Typical inputs:** Chunk file path + output file path (injected by parent skill)
+
+---
+
+### ollama-coder
+- **Model:** haiku | **Color:** none specified
+- **Tools:** Bash only
+- **Trigger:** Offloading bulk/repetitive code generation to save Claude tokens
+- **Capabilities:**
+  - Relay agent: receives a prompt from Claude, sends it to Ollama, returns raw output
+  - Endpoint priority: GCP Ollama → local Ollama; model priority: qwen3.5:27b → gemma4:31b → qwen3:8b → qwen3:4b
+  - Selects `think: false` for boilerplate/stubs; `think: true` for complex logic
+  - Does NOT review, modify, or improve output — pure relay
+- **Limitations:** Only as good as the available Ollama model; no codebase context
+- **Typical inputs:** Complete, self-contained code generation prompt from the parent agent
+
+---
+
+## Quick Reference Table
+
+| Agent | Model | Can Edit? | Domain |
+|---|---|---|---|
+| orchestrator | opus | yes | Coordination |
+| architect | opus | no | Architecture |
+| harness-optimizer | sonnet | yes | Harness config |
+| loop-operator | sonnet | yes | Autonomous loops |
+| research | sonnet | no | Investigation |
+| frontend | sonnet | yes | UI/CSS |
+| backend | sonnet | yes | API/server |
+| database | sonnet | yes | DB/migrations |
+| build | sonnet | yes | TypeScript/lint |
+| reviewer | sonnet | no | Code review |
+| security-reviewer | sonnet | no | Security audit |
+| python-reviewer | sonnet | no | Python review |
+| typescript-reviewer | sonnet | no | TS/JS review |
+| database-reviewer | sonnet | no | DB review |
+| design-review | sonnet | no | Visual/UX review |
+| debugger | sonnet | yes | Bug diagnosis |
+| qa | sonnet | no | Test generation |
+| tdd-guide | sonnet | yes | TDD enforcement |
+| e2e-runner | sonnet | yes | E2E tests |
+| refactor-cleaner | sonnet | yes | Dead code removal |
+| git | haiku | no | Git operations |
+| vercel | haiku | no | Vercel deploy |
+| railway | haiku | no | Railway deploy |
+| fly-io | haiku | no | Fly.io deploy |
+| netlify | haiku | no | Netlify deploy |
+| cloudflare | haiku | no | CF Workers/Pages |
+| doc-updater | haiku | yes | Codemaps/docs |
+| docs-lookup | sonnet | no | Library docs |
+| chief-of-staff | opus | yes | Comms triage |
+| email-classifier | sonnet | no | Email classification |
+| ollama-coder | haiku | no | Token-saving relay |

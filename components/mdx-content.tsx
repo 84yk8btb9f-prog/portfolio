@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { CopyCode } from "./copy-code";
 
@@ -6,9 +7,10 @@ type Props = {
   title: string;
   date?: string;
   status?: string;
+  children?: ReactNode;
 };
 
-export function MdxContent({ source, title, date, status }: Props) {
+export function MdxContent({ source, title, date, status, children }: Props) {
   return (
     <article
       className="p-8 md:p-12"
@@ -54,6 +56,8 @@ export function MdxContent({ source, title, date, status }: Props) {
       <div className="prose prose-stone max-w-none text-[14px] text-[#1d1d1f]">
         <MDXRemote source={source} components={{ pre: CopyCode }} />
       </div>
+
+      {children}
     </article>
   );
 }

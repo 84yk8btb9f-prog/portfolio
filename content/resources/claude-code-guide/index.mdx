@@ -1,0 +1,51 @@
+---
+title: "Claude Code — Field Guide"
+date: "2026-04-16"
+description: "Honest notes on how I actually run Claude Code. Seventeen sections, no fluff."
+order: 0
+tags: ["claude-code", "guide"]
+---
+
+This is the full writeup of how I run Claude Code day to day — the settings, the agents, the hooks, the MCPs, the skills that earn their keep, and the ones I stopped using.
+
+Not a tutorial. Not a vendor pitch. A working notebook from someone shipping with it.
+
+Read in order, or jump straight to the section you need.
+
+## Sections
+
+| # | Section | What it covers |
+|---|---|---|
+| 01 | [Philosophy & CLAUDE.md](/resources/claude-code-guide/01-philosophy-and-claude-md) | How Claude Code actually thinks, and how to shape it with CLAUDE.md. |
+| 02 | [Settings & Permissions](/resources/claude-code-guide/02-settings-and-permissions) | `settings.json`, permission rules, auto-approve patterns, deny lists. |
+| 03 | [The rules/ Directory](/resources/claude-code-guide/03-rules-directory) | Modular rule files — when to split, when to `@import`. |
+| 04 | [MCP Servers](/resources/claude-code-guide/04-mcp-servers) | Every MCP I run, what each does, when to pick one over another. |
+| 05 | [Plugins](/resources/claude-code-guide/05-plugins) | Official plugins — what they give you, the ones worth enabling. |
+| 06 | [Custom Agents](/resources/claude-code-guide/06-agents) | Agents in `~/.claude/agents/` — specialists, model routing, delegation. |
+| 07 | [Slash Commands](/resources/claude-code-guide/07-commands) | Commands in `~/.claude/commands/` — wrappers for repeatable workflows. |
+| 08 | [Skills](/resources/claude-code-guide/08-skills) | 200+ skills, how gating works, the set that pays for itself daily. |
+| 09 | [Hooks & Scripts](/resources/claude-code-guide/09-hooks-and-scripts) | PreToolUse, PostToolUse, Stop — automate what you keep forgetting. |
+| 10 | [Memory System](/resources/claude-code-guide/10-memory-system) | Pinecone + wiki: what each is for, when to ingest vs. search. |
+| 11 | [Obsidian Vault](/resources/claude-code-guide/11-obsidian-vault) | Vault layout, `_context/` canon docs, using lean-ctx instead of MCP. |
+| 12 | [lean-ctx Layer](/resources/claude-code-guide/12-lean-ctx-layer) | `ctx_read`, `ctx_shell`, `ctx_search` — the token-saving layer. |
+| 13 | [Bootstrap & Install](/resources/claude-code-guide/13-bootstrap-and-install) | From zero to a working Claude Code setup on a fresh machine. |
+| 14 | [Secrets & Env](/resources/claude-code-guide/14-secrets-and-env) | Where API keys live, what gets committed, what gets rotated. |
+| 15 | [Unexplored Directories](/resources/claude-code-guide/15-unexplored-dirs) | Folders under `~/.claude/` most people never touch, and why. |
+| 16 | [Workflow Playbooks](/resources/claude-code-guide/16-workflow-playbooks) | End-to-end chains: spec → plan → build → verify → ship. |
+| 17 | [Plugin Deep Dive](/resources/claude-code-guide/17-plugin-deep-dive) | Plugin internals — how they load, where they hook, how to debug them. |
+
+## How to read this
+
+Start with **01 and 02** if you've never opened `~/.claude/` before — they anchor the rest.
+
+Skip straight to **06, 07, 08** if you already have things running and want to know what to customize first.
+
+**16** is the payoff section — it shows how every piece from the earlier sections chains together into real work.
+
+## A note on honesty
+
+Some of this setup is overkill for most people. Some of it is essential.
+
+Where I've kept something running because it earns its keep, I say so. Where I've stopped using something and left it installed anyway, I say that too. You can't read 200 skills by their descriptions and figure out which ten matter — you have to live with them.
+
+That's what this guide is: the result of living with it.

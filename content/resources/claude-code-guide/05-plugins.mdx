@@ -1,0 +1,249 @@
+---
+title: "05 — Plugins"
+date: "2026-04-16"
+description: "Official plugins, what they give you, and the ones actually worth enabling."
+order: 5
+tags: ["claude-code", "guide"]
+---
+
+All plugins are installed at **user scope** (`~/.claude/plugins/cache/`). Versions and dates sourced from `installed_plugins.json`.
+
+---
+
+## Marketplace: `claude-plugins-official`
+**Source repo:** `anthropics/claude-plugins-official`
+
+### superpowers
+- **Version:** 5.0.7
+- **Installed:** 2026-03-15 | **Updated:** 2026-04-17
+- **Provides — Skills (13):**
+  - `brainstorming` — structured ideation for new products/features
+  - `writing-plans` — multi-file implementation planning
+  - `executing-plans` / `execute-plan` (command) — step-by-step plan execution
+  - `using-superpowers` — meta-skill: how to orchestrate all superpowers skills
+  - `systematic-debugging` — root-cause debugging with defense-in-depth
+  - `test-driven-development` — TDD methodology with anti-patterns guide
+  - `verification-before-completion` — validate multi-file implementations before declaring done
+  - `subagent-driven-development` — spec → reviewer → implementer pipeline
+  - `dispatching-parallel-agents` — fan-out parallel agent orchestration
+  - `using-git-worktrees` — parallel dev via git worktrees
+  - `requesting-code-review` / `receiving-code-review` — structured PR review flow
+  - `finishing-a-development-branch` — branch cleanup and merge prep
+  - `writing-skills` — author new Claude Code skills
+- **Provides — Commands:** `/brainstorm`, `/write-plan`, `/execute-plan`
+- **Provides — Agents:** `code-reviewer`
+- **Note:** Most critical plugin in the setup; gates brainstorm/plan/debug/verify workflows via CLAUDE.md rules
+
+### frontend-design
+- **Version:** unknown (SHA: d5c15b8)
+- **Installed:** 2026-03-15 | **Updated:** 2026-04-17
+- **Provides — Skills:** `frontend-design` — full UI design-to-code pipeline
+
+### code-review
+- **Version:** unknown (SHA: d5c15b8)
+- **Installed:** 2026-03-15 | **Updated:** 2026-04-17
+- **Provides — Commands:** `/code-review`
+
+### hookify
+- **Version:** unknown (SHA: d5c15b8)
+- **Installed:** 2026-03-15 | **Updated:** 2026-04-17
+- **Provides — Skills:** `writing-rules`
+- **Provides — Commands:** `/hookify`, `/hookify:help`, `/hookify:list`, `/hookify:configure`
+- **Provides — Agents:** `conversation-analyzer`
+- **Provides — Hooks:** PreToolUse, PostToolUse, Stop, UserPromptSubmit hook infrastructure (Python)
+- **Note:** Hook management system — write and enforce custom behavioral rules
+
+### context7
+- **Version:** unknown (SHA: d5c15b8)
+- **Installed:** 2026-03-15 | **Updated:** 2026-04-17
+- **Status:** DISABLED (`"context7@claude-plugins-official": false` in settings.json)
+- **Note:** Replaced by the native `mcp__context7__` MCP server
+
+### code-simplifier
+- **Version:** 1.0.0
+- **Installed:** 2026-03-16 | **Updated:** 2026-04-17
+- **Provides — Commands:** simplify/refactor code
+
+### commit-commands
+- **Version:** unknown (SHA: b10b583)
+- **Installed:** 2026-03-25 | **Updated:** 2026-04-17
+- **Provides — Commands:** `/commit`, `/commit-push-pr`, `/clean_gone`
+
+### pr-review-toolkit
+- **Version:** unknown (SHA: b10b583)
+- **Installed:** 2026-03-25 | **Updated:** 2026-04-17
+- **Provides — Commands:** `/review-pr`
+- **Provides — Agents:** `code-reviewer`, `code-simplifier`, `comment-analyzer`, `pr-test-analyzer`, `silent-failure-hunter`, `type-design-analyzer`
+
+### feature-dev
+- **Version:** unknown (SHA: b10b583)
+- **Installed:** 2026-03-25 | **Updated:** 2026-04-17
+- **Provides — Commands:** `/feature-dev`
+- **Provides — Agents:** `code-architect`, `code-explorer`, `code-reviewer`
+
+### telegram
+- **Version:** 0.0.6
+- **Installed:** 2026-03-24 | **Updated:** 2026-04-17
+- **Source:** `anthropics/claude-plugins-official` (external_plugins/telegram)
+- **Provides — MCP:** `mcp__plugin_telegram_telegram__*` — Telegram bot integration
+- **Provides — Commands:** `/telegram:configure`, `/telegram:access`
+
+### swift-lsp
+- **Version:** 1.0.0
+- **Installed:** 2026-04-07 | **Updated:** 2026-04-17
+- **Provides:** Swift Language Server Protocol integration
+
+### figma
+- **Version:** 2.1.7
+- **Installed:** 2026-04-14 | **Updated:** 2026-04-17
+- **Provides — Skills (7):**
+  - `figma-use` — query and read Figma designs
+  - `figma-implement-design` — convert Figma frames to code
+  - `figma-generate-design` — create new Figma designs
+  - `figma-generate-library` — build component libraries from Figma
+  - `figma-code-connect` — link code components to Figma
+  - `figma-create-design-system-rules` — extract design tokens/rules
+  - `figma-create-new-file` — create new Figma files
+- **Provides — MCP:** `mcp__plugin_figma_figma__*` (auth-gated)
+- **Provides — Steering docs:** code-connect, design-system-rules, implement-design guidance
+
+### slack
+- **Version:** 1.0.0
+- **Installed:** 2026-04-16 | **Updated:** 2026-04-17
+- **Provides — Skills:** `slack-messaging`, `slack-search`
+- **Provides — Commands:** `/standup`, `/find-discussions`, `/summarize-channel`, `/channel-digest`, `/draft-announcement`
+- **Provides — MCP:** `mcp__plugin_slack_slack__*` (auth-gated)
+
+### vercel
+- **Version:** 0.40.0
+- **Installed:** 2026-04-17 | **Updated:** 2026-04-17
+- **Provides — Skills (25):**
+  - Core: `nextjs`, `react-best-practices`, `vercel-cli`, `vercel-agent`, `vercel-functions`, `vercel-storage`, `vercel-sandbox`
+  - Deploy: `deployments-cicd`, `workflow`, `verification`, `bootstrap`
+  - Framework: `ai-sdk`, `ai-gateway`, `chat-sdk`, `turbopack`, `next-forge`, `next-cache-components`, `next-upgrade`, `routing-middleware`, `runtime-cache`
+  - Auth & Config: `auth`, `env-vars`, `shadcn`, `marketplace`, `knowledge-update`
+- **Provides — Commands:** `/vercel:deploy`, `/vercel:env`, `/vercel:status`, `/vercel:bootstrap`, `/vercel:marketplace`
+- **Provides — Agents:** `ai-architect`, `deployment-expert`, `performance-optimizer`
+- **Provides — MCP:** `mcp__plugin_vercel_vercel__*` (auth-gated)
+- **Provides — Hooks:** intelligent skill injection based on prompt patterns
+
+---
+
+## Marketplace: `sequenzia`
+**Source repo:** `sequenzia/agent-alchemy`
+
+### agent-alchemy-claude-tools
+- **Version:** 0.2.5
+- **Installed:** 2026-03-28 | **Updated:** 2026-04-17
+- **Provides — Skills:** `claude-code-tasks`, `claude-code-teams` — multi-agent task management and team orchestration
+
+### agent-alchemy-core-tools
+- **Version:** 0.2.3
+- **Installed:** 2026-03-28 | **Updated:** 2026-04-17
+- **Provides — Skills:** `codebase-analysis`, `deep-analysis`, `language-patterns`, `project-conventions`, `technical-diagrams`
+- **Provides — Agents:** `code-architect`, `code-explorer`, `code-synthesizer`
+- **Provides — Hooks:** `auto-approve-da-session.sh`
+
+### agent-alchemy-dev-tools
+- **Version:** 0.3.4
+- **Installed:** 2026-03-28 | **Updated:** 2026-04-17
+- **Provides — Skills:** `feature-dev`, `bug-killer`, `code-quality`, `architecture-patterns`, `changelog-format`, `docs-manager`, `document-changes`, `project-learnings`, `release-python-package`
+- **Provides — Agents:** `bug-investigator`, `changelog-manager`, `code-reviewer`, `docs-writer`
+
+### agent-alchemy-git-tools
+- **Version:** 0.1.0
+- **Installed:** 2026-03-28 | **Updated:** 2026-04-17
+- **Provides — Skills:** `git-commit`
+
+### agent-alchemy-sdd-tools
+- **Version:** 0.2.11
+- **Installed:** 2026-03-28 | **Updated:** 2026-04-17
+- **Provides — Skills (5):** `create-spec`, `analyze-spec`, `create-tasks`, `run-tasks`, `execute-tasks`
+- **Provides — Agents:** `codebase-explorer`, `context-manager`, `researcher`, `spec-analyzer`, `task-executor`, `wave-lead`
+- **Note:** Full Spec-Driven Development (SDD) pipeline
+
+### agent-alchemy-tdd-tools
+- **Version:** 0.2.1
+- **Installed:** 2026-03-28 | **Updated:** 2026-04-17
+- **Provides — Skills (5):** `tdd-cycle`, `generate-tests`, `create-tdd-tasks`, `execute-tdd-tasks`, `analyze-coverage`
+- **Provides — Agents:** `tdd-executor`, `test-reviewer`, `test-writer`
+
+---
+
+## Marketplace: `thedotmack`
+**Source repo:** `thedotmack/claude-mem`
+
+### claude-mem
+- **Version:** 10.5.5
+- **Installed:** 2026-03-15 | **Updated:** 2026-04-17
+- **Provides — Skills (4):** `mem-search`, `make-plan`, `do`, `smart-explore`
+- **Provides — MCP:** `mcp__plugin_claude-mem_mcp-search__*` — persistent memory search across sessions
+- **Provides — Modes (35):** localized code modes (ar, bn, chill, cs, de, es, fr, ja, ko, zh, etc.) + `email-investigation`, `law-study`
+- **Provides — Hooks:** session lifecycle hooks (session-start, session-end, etc.)
+- **Note:** Session memory system using SQLite + tree-sitter for code-aware memory
+
+---
+
+## Marketplace: `context-engineering-marketplace`
+**Source repo:** `muratcankoylan/agent-skills-for-context-engineering`
+
+### context-engineering
+- **Version:** 3ab8c9488989
+- **Installed:** 2026-04-06 | **Updated:** 2026-04-17
+- **Provides — Skills (13):**
+  - `context-fundamentals`, `context-compression`, `context-optimization`, `context-degradation`
+  - `memory-systems`, `filesystem-context`
+  - `evaluation`, `advanced-evaluation`
+  - `multi-agent-patterns`, `hosted-agents`
+  - `tool-design`, `bdi-mental-states`
+  - `project-development`
+
+---
+
+## Marketplace: `anthropic-agent-skills`
+**Source repo:** `anthropics/skills`
+
+### pdf
+- **Enabled:** true (no cache entry — loaded from marketplace directory)
+- **Provides — Skills:** `pdf` — extract, fill, and annotate PDF forms; convert PDFs to images
+- **Provides — Scripts:** `fill_pdf_form_with_annotations.py`, `convert_pdf_to_images.py`, `extract_form_structure.py`, and others
+
+---
+
+## Marketplace: `coreyhaines31`
+**Source repo:** `coreyhaines31` (GitHub)
+
+### marketing-skills
+- **Version:** 1.0.0
+- **Installed:** 2026-03-28 | **Updated:** 2026-03-28
+- **Provides — Skills (34):**
+  - SEO/Content: `seo-audit`, `ai-seo`, `schema-markup`, `content-strategy`, `site-architecture`, `programmatic-seo`
+  - CRO: `page-cro`, `form-cro`, `popup-cro`, `onboarding-cro`, `signup-flow-cro`, `paywall-upgrade-cro`
+  - Copy/Ads: `copywriting`, `copy-editing`, `ad-creative`, `paid-ads`, `social-content`, `cold-email`, `email-sequence`
+  - Product/Growth: `launch-strategy`, `pricing-strategy`, `marketing-psychology`, `marketing-ideas`, `competitor-alternatives`, `free-tool-strategy`, `lead-magnets`, `referral-program`, `churn-prevention`
+  - Analytics/Ops: `analytics-tracking`, `ab-test-setup`, `customer-research`, `product-marketing-context`, `sales-enablement`, `revops`
+- **Provides — Tool integrations (75+):** GA4, Mixpanel, HubSpot, Klaviyo, Stripe, Segment, Meta Ads, Semrush, Ahrefs, and more
+
+---
+
+## Marketplaces Registered But No Plugins Installed
+
+| Marketplace | Source Repo | Notes |
+|---|---|---|
+| `superpowers-marketplace` | `obra/superpowers-marketplace` | Registered, no plugins installed |
+| `interface-design` | `Dammyjay93/interface-design` | Registered, no plugins installed |
+| `spec-kit` | `github/spec-kit` | Enabled in `enabledPlugins` (`spec-kit@spec-kit: true`) but no cache entry |
+
+---
+
+## Summary Statistics
+
+| Stat | Value |
+|---|---|
+| Total installed plugins | 23 |
+| Enabled | 22 (context7 disabled) |
+| Marketplaces with installs | 5 |
+| Registered marketplaces (total) | 9 |
+| Total skills contributed | ~120+ |
+| Total agents contributed | ~25+ |
+| Scope | All user-level |

@@ -1,0 +1,546 @@
+---
+title: "16 — Workflow Playbooks"
+date: "2026-04-16"
+description: "End-to-end chains: spec → plan → build → verify → ship."
+order: 16
+tags: ["claude-code", "guide"]
+---
+
+Previous sections document individual components. This section shows how agents, skills, MCPs, commands, and hooks chain together into repeatable end-to-end workflows.
+
+---
+
+## Playbook 1: Daily Session Ritual
+
+**Purpose:** Start every work session with full context, work with guardrails, and close with persistent memory so the next session starts exactly where this one ended.
+
+**Trigger:** Start of any Claude Code session; `/resume` (or "what were we working on")
+
+### Chain
+
+```
+/resume
+  → reads vault CLAUDE.md ("Current State & Handoffs")
+  → reads 02-Projects/index.md (active project links)
+  → reads BACKLOG.md for each active project (In Progress only)
+  → outputs structured status report
+  → waits for instructions
+
+[work phase]
+  → skill gates fire automatically:
+      superpowers:brainstorming  — only on new product/feature, "build"/"create" intent
+      superpowers:writing-plans  — on explicit plan request or >3-file unclear task
+      frontend-design            — on new UI page or design feedback
+      context7                   — mandatory before writing library/framework code
+  → /checkpoint [name]           — after each significant milestone
+      runs /verify quick, git stash/commit, logs to .claude/checkpoints.log
+  → /strategic-compact           — PreToolUse hook suggests compaction at 50 tool calls;
+      manually run /compact at phase transitions (research→plan, debug→next feature)
+
+/wrap-up (or "end session")
+  → summarizes session in 3–5 bullets
+  → updates vault CLAUDE.md "Current State & Handoffs" section
+  → creates handoff note at 02-Projects/[project]/Handoffs/[YYYY-MM-DD]
+  → moves completed tasks in BACKLOG.md to Done
+  → outputs: "Wrap-up complete. Next session: start with /resume."
+
+[Stop hook — fires automatically on session end]
+  → auto-session-save.sh writes ~/.claude/session-data/YYYY-MM-DD-<id>-session.tmp
+  → handoff also appears in MyVault/02-Projects/Claude Sessions/
+```
+
+**Expected outputs:** Status report on start. Handoff note + updated vault CLAUDE.md on end. Session file in `~/.claude/session-data/`.
+
+**Gotchas:**
+- `/resume` uses `mcp__obsidian__` tools to read vault — do NOT use native Read on vault files.
+- Stop hook runs `auto-session-save.sh` automatically; `/wrap-up` is a richer manual version that also updates the backlog.
+- If resuming mid-session from a file: `/resume-session [path]` loads `~/.claude/session-data/` files, not vault handoffs — these are two distinct systems.
+- Context budget warning fires after 20+ exchanges; run `/compact` before switching to an unrelated task.
+
+---
+
+## Playbook 2: New Feature Development (Plan → Execute → Verify)
+
+**Purpose:** Implement a feature correctly from requirements through production.
+
+**Trigger:** "Build [feature]", "Add [X] to the app", "Implement [Y]"
+
+### Chain
+
+```
+[Planning gate]
+  superpowers:writing-plans  (>3 files or unclear scope)
+    → or /plan command
+    → or /multi-plan (Codex + Gemini parallel analysis → Claude synthesizes → saves to .claude/plan/feature.md)
+
+[Implementation]
+  context7 resolve-library-id → query-docs  (mandatory before writing library code)
+
+  Agent routing (inline for 1 file; subagent for 2–5 files; orchestrator for cross-domain):
+    frontend agent    → UI components, pages, React/Next.js
+    backend agent     → API routes, middleware, auth, data processing
+    database agent    → schema, migrations, queries
+    orchestrator      → /orchestrate feature "description"
+                         → planner → tdd-guide → code-reviewer → security-reviewer
+                         → structured handoff docs between each agent
+
+  DevFleet (parallel worktrees, optional):
+    /devfleet → plan_project(prompt) → dispatch_mission(M1) → auto-chain → get_report
+
+  Design DNA (auto-injected):
+    design-dna.md hook fires on every .tsx/.jsx write
+    frontend-design skill fires on new UI page or design feedback
+
+  TDD:
+    superpowers:test-driven-development or /tdd
+    tdd-workflow skill for full TDD cycle
+
+[Review chain — run before merge]
+  reviewer agent     → code quality, correctness, types
+  security-reviewer  → auth/payment/PII paths
+  python-review      → Python-specific patterns (if applicable)
+  /pragmatic-code-review → /code-review command
+
+[Verify]
+  superpowers:verification-before-completion  (after multi-file implementation)
+  /verify [quick|full|pre-pr]
+    → build → types → lint → tests → console.log audit → git status
+
+[Deploy]
+  see Playbook 10 (Ship/Deploy)
+```
+
+**Expected outputs:** Plan file at `.claude/plan/feature.md`, implemented code, passing tests, code review report, verification checklist.
+
+**Gotchas:**
+- Always call `context7` before writing code for any known library — training data may be stale.
+- `frontend-design` skill auto-triggers on new UI pages; design DNA rules (no gradient backgrounds, no Inter/Arial, physics-based easing) apply to all .tsx writes via hook.
+- Multi-file tasks: use orchestrator, not inline Claude, to prevent context overload.
+- `/orchestrate` uses structured handoff docs between agents; do not skip this for security-sensitive features.
+
+---
+
+## Playbook 3: Bug Fixing Workflow
+
+**Purpose:** Find and fix bugs without guessing. Iron Law: no fix without root cause.
+
+**Trigger:** "Fix this bug", "Why is X broken", "Debug this error", `/investigate`
+
+### Chain
+
+```
+/investigate  (or superpowers:systematic-debugging after 1+ failed attempt)
+  Phase 1: Root Cause Investigation
+    → collect symptoms, read stack traces
+    → git log --oneline -20 -- <affected-files>  (check recent changes)
+    → Grep/Read to trace code path
+    → reproduce deterministically
+    → output: "Root cause hypothesis: ..."
+
+  Phase 2: Pattern Analysis
+    → match against known patterns (race condition, nil propagation, state corruption,
+      integration failure, config drift, stale cache)
+    → WebSearch sanitized error type if no match (strip hostnames/IPs/paths first)
+
+  Phase 3: Hypothesis Testing
+    → add temporary debug log at suspected root cause
+    → 3-strike rule: if 3 hypotheses fail → AskUserQuestion (continue/escalate/instrument)
+    → Scope Lock: freeze edits to narrowest affected directory
+
+  Phase 4: Implementation
+    → fix root cause, not symptom
+    → minimal diff (fewest files/lines)
+    → write regression test: must FAIL without fix, PASS with fix
+    → if >5 files touched → AskUserQuestion about blast radius
+
+[Verify]
+  /verify full  (or superpowers:verification-before-completion)
+  /test-coverage  → confirms fix is covered
+
+  debug report:
+    Symptom | Root cause | Fix (file:line) | Evidence | Regression test | Status
+```
+
+**Expected outputs:** Root cause identified, fix applied, regression test written, verification report.
+
+**Gotchas:**
+- Never apply a fix you cannot verify — "this should fix it" is not acceptable output.
+- `freeze` skill + scope lock prevents scope creep; run `/unfreeze` after debugging.
+- If bug is non-obvious after reading error, fire `superpowers:systematic-debugging` before touching code.
+- 3+ failed attempts = architectural issue, not a code bug; escalate.
+
+---
+
+## Playbook 4: Content Pipeline (Instagram Carousels)
+
+**Purpose:** Research competitors, ideate, script, build, and distribute Instagram carousels with ManyChat lead capture.
+
+**Trigger:** "Make me a carousel", "carousel pipeline", `/carousel`
+
+### Chain
+
+```
+/carousel  (full pipeline — or any sub-step to skip ahead)
+  Phase 1: /carousel-analysis
+    → Playwright browser automation scrapes competitor carousels
+    → identifies winning patterns
+    → gate: confirm before proceeding
+
+  Phase 2: /carousel-ideator
+    → generates 8–10 data-backed ideas
+    → gate: user picks 1–3
+
+  Phase 3: /carousel-scripter  (per selected idea)
+    → scripts every slide + CTA
+    → gate: user approves script
+
+  Phase 4: /carousel-creator
+    → builds HTML slides
+    → Playwright screenshots to PNG
+    → Visual DNA: neon orange #FF5F1F, black bg, glassmorphism terminal cards
+    → gate: user reviews exported PNGs
+
+  Phase 5: /carousel-caption
+    → writes 2 variants (short + story-driven)
+    → gate: user picks one
+
+  Phase 6: /carousel-manychat
+    → writes comment-trigger DM sequence
+    → email collection for newsletter
+    → gate: user reviews DMs
+
+  /crosspost  → distributes approved carousel across platforms
+
+State files: /tmp/carousel-analysis-[date].json → /tmp/carousel-ideas-selected.json
+             → /tmp/carousel-script-[slug].json → /tmp/carousel-export/ (PNGs)
+```
+
+**Quick modes:** `/carousel "topic"` skips analysis+ideation. `/carousel build` jumps to creation.
+
+**Delivery flow:** Comment keyword → ManyChat DM → email collect → Zapier → Beehiiv → welcome email.
+
+**Gotchas:**
+- Playwright MCP required for browser automation in carousel-analysis and carousel-creator.
+- Instagram cold DMs are blocked by ToS; ManyChat comment-to-DM is the only valid outreach path.
+- Visual DNA design system is hardcoded: do not change colors/style without updating the skill.
+
+---
+
+## Playbook 5: Lead Generation Pipeline
+
+**Purpose:** Scrape, classify, enrich, and push business leads to Google Sheets for outreach campaigns.
+
+**Trigger:** "Find leads", "Scrape businesses in [location]", `/scrape-leads`, `/run-pipeline`
+
+### Chain
+
+```
+/scrape-leads  (or /gmaps-leads for Google Maps, /lead-scraper for general)
+  → test scrape: 25 items, verify 80%+ industry match
+  → full scrape: scrape_apify.py (< 1000) or scrape_apify_parallel.py (1000+)
+      geographic partitioning: US/EU/UK/Canada/Australia 4-way split
+  → deliverable: Google Sheet URL (local .tmp/ JSON is temp only)
+
+/classify-leads  (optional, for complex niches)
+  → classify_leads_llm.py: strong / moderate / weak / disqualify
+  → top 3 leads with score, pain signal, opening angle
+
+/casualize-names  → normalizes name formatting for outreach copy
+
+enrich_emails.py  → AnyMailFinder email enrichment on sheet
+
+/instantly-campaigns  → pushes leads to Instantly.ai outreach sequence
+
+/run-pipeline [stage]  → orchestrates full pipeline from project directory:
+  ./run.sh all | scrape | score | push | manual | summary
+  → reports: profiles scraped, passed pre-filter, scoring breakdown, Notion push confirmation
+```
+
+**Expected outputs:** Google Sheet with classified + email-enriched leads. Instantly campaign with leads loaded.
+
+**Gotchas:**
+- Apify API token + Google credentials + AnyMailFinder key + Anthropic key all required in `.env`.
+- Instagram DM outreach is ToS-blocked; pipeline targets email outreach via Instantly.
+- `/run-pipeline` runs from a specific project directory (`/Users/nikolassapalidis/Projects/lead-pipeline`); it is not a global command.
+- Large scrapes: always test 25 items first. &lt; 80% industry match = stop and refine keywords.
+
+---
+
+## Playbook 6: Ad Creative Intelligence Pipeline
+
+**Purpose:** Extract competitor ads, analyze strategy and creatives, map funnels, generate intelligence report.
+
+**Trigger:** "Analyze [competitor]'s ads", `/ads-analyst [competitor]`
+
+### Chain
+
+```
+/ads-analyst [competitor]
+  Phase 1: /meta-ads-extractor
+    → Playwright navigates Meta Ad Library
+    → extracts image (600×600) and video URLs + CTA destination URLs
+    → curl downloads all assets to output/meta-ads/{slug}/assets/
+    → checkpoint: "Found X images, Y videos"
+
+  Phase 2: /meta-ads-analyser
+    → analyzes each creative: dimensions, hook, copy, emotion
+    → maps ads → landing pages → identifies funnels
+    → identifies testing patterns
+    → generates HTML report with inline media
+    → checkpoint: "Generated strategy report, N funnels identified"
+
+  Phase 3: /ad-creative-analysis  (top N ads, default 5)
+    → video ads: Gemini Files API upload → multimodal frame-by-frame analysis
+    → image ads: vision model element analysis
+    → each: hook score, full transcription, tactical takeaways, improvement suggestions
+    → checkpoint: "Completed deep-dives on X ads"
+
+  Phase 4: /landing-page-analysis  (per unique CTA URL)
+    → Playwright screenshot
+    → analyzes above-fold, offer, social proof, CTAs, funnel position
+    → checkpoint: "Analyzed X landing pages"
+
+  Phase 5: MASTER-REPORT.md compilation
+    → output/meta-ads/{slug}/: assets/ + {slug}-analysis.html + deep-dives/ + landing-pages/ + MASTER-REPORT.md
+    → zip + Telegram delivery (if configured)
+    → handoff prompt: "Ready to plan your campaign? → /head_of_marketing [your-url]"
+```
+
+**Expected outputs:** Full intelligence package zipped and delivered via Telegram or saved locally.
+
+**Gotchas:**
+- Gemini API key required for video ad analysis (`GEMINI_API_KEY`). Image ads fall back to Claude vision.
+- Playwright/browser MCP must be connected — Meta Ad Library is a dynamic SPA.
+- Run `/ads-analyst install` first to verify all 4 sub-skills, browser automation, and API keys.
+- Never run `/ads-analyst` without checking sub-skill installation; missing DOM selectors cause silent failures.
+
+---
+
+## Playbook 7: Product Launch Pipeline
+
+**Purpose:** From zero to a launched product with strategy, pricing, and conversion-optimized landing page.
+
+**Trigger:** "Launch [product]", "Build landing page for [X]", "Plan the launch"
+
+### Chain
+
+```
+/launch-strategy
+  → market positioning, go-to-market plan, launch sequence
+
+/pricing-strategy
+  → pricing tiers, value anchoring, willingness-to-pay analysis
+
+/site-architecture
+  → page structure, navigation, user flow mapping
+
+[Build landing page]
+  frontend-design skill (fires on new page)
+  baseline-ui → design system scaffolding
+  design DNA rules auto-inject on .tsx writes
+
+/landing-page-analysis  (once draft is live/staged)
+  → above-fold audit, offer clarity, social proof, CTA analysis
+
+/page-cro  (conversion rate optimization pass)
+  → headline variants, CTA copy, trust signals, layout improvements
+
+/form-cro  (if form present)
+/signup-flow-cro  (if signup flow present)
+/onboarding-cro  (if onboarding flow present)
+
+/pre-ship  → production readiness checklist before go-live
+  → HTTPS, token expiry, session invalidation, console.logs, async errors,
+    pagination, DB hygiene, deployment ops
+  → run /cso alongside for secrets + OWASP coverage
+
+/ship  → final deploy (see Playbook 10)
+```
+
+**Expected outputs:** Strategy doc, pricing deck, live landing page, CRO recommendations, pre-ship report.
+
+**Gotchas:**
+- `frontend-design` skill fires automatically on new pages — check design preferences at `~/.claude/projects/-Users-nikolassapalidis/memory/design_preferences.md` first.
+- Never skip `/pre-ship` before go-live; it catches HTTPS enforcement, DB user permissions, and staging gate.
+
+---
+
+## Playbook 8: Multi-Model Collaboration (Codex + Gemini + Claude)
+
+**Purpose:** Use Codex for backend reasoning and Gemini for frontend design, with Claude as sole code writer, to produce higher-quality implementations than single-model work.
+
+**Trigger:** Complex feature spanning backend + frontend, "use multi-model", `/multi-plan`, `/multi-workflow`
+
+### Chain
+
+```
+/multi-plan [task description]
+  Phase 1: Research
+    → prompt enhancement via ace-tool MCP (if available)
+    → context retrieval (ace-tool or Glob/Grep/Read fallback)
+    → requirement completeness score (0–10; < 7 = stop and ask)
+
+  Phase 2: Parallel analysis (run_in_background: true — MUST NOT block)
+    → Codex (analyzer.md): technical feasibility, architecture, risks
+    → Gemini (analyzer.md): UI/UX feasibility, design, user experience
+    → wait for both via TaskOutput (timeout: 600000ms)
+    → synthesize, present options, user selects
+
+  Phase 3: Parallel planning (resume saved SESSION_IDs)
+    → Codex (architect.md): backend architecture
+    → Gemini (architect.md): frontend architecture
+    → Claude synthesizes: Codex backend + Gemini frontend
+    → saves to .claude/plan/feature-name.md
+    → stops here; user reviews and runs /multi-execute
+
+/multi-execute .claude/plan/feature-name.md
+  Phase 0: Read plan, detect task type (frontend/backend/fullstack)
+  Phase 1: Quick context retrieval
+  Phase 3: Prototype acquisition
+    → Frontend → Gemini (resume GEMINI_SESSION): Unified Diff only, NO writes
+    → Backend  → Codex  (resume CODEX_SESSION): Unified Diff only, NO writes
+    → Fullstack → parallel both
+  Phase 4: Claude implements (Code Sovereign)
+    → parse diff → mental sandbox → refactor to production grade → apply via Edit/Write
+    → run lint/typecheck/tests
+  Phase 5: Parallel audit (resume sessions again)
+    → Codex review: security, performance, error handling, logic
+    → Gemini review: accessibility, design consistency, UX
+    → Claude integrates feedback and applies fixes
+
+/multi-workflow [task]  — runs all 6 phases (Research → Ideation → Plan → Execute → Optimize → Review) in one command
+```
+
+**Trust rules:** Backend logic follows Codex. Frontend design follows Gemini. Claude is the only writer.
+
+**Expected outputs:** Plan file, implemented + refactored code, dual-model audit report.
+
+**Gotchas:**
+- External models (Codex, Gemini) have ZERO filesystem write access — they output diffs only.
+- Background tasks require `timeout: 600000` — default 30s will cause premature timeout.
+- If waiting times out, use AskUserQuestion — NEVER kill the background process directly.
+- `/multi-plan` ends at plan delivery; it does NOT auto-execute. User must explicitly run `/multi-execute`.
+- `codeagent-wrapper` must be at `~/.claude/bin/`; verify before using multi-model commands.
+
+---
+
+## Playbook 9: Weekly Retrospective
+
+**Purpose:** Review what shipped, analyze work patterns, audit setup health, and maintain skill portfolio quality.
+
+**Trigger:** End of week/sprint, "weekly retro", `/retro`
+
+### Chain
+
+```
+/retro
+  → analyzes git commit history (configurable lookback period)
+  → breaks down contributions per person (team-aware)
+  → work pattern analysis: velocity, cadence, code quality metrics
+  → persistent history + trend tracking across retros
+  → outputs: what shipped, per-person praise and growth areas, patterns
+
+/harness-audit [scope]
+  → runs node scripts/harness-audit.js
+  → scores 7 categories (0–10 each, 70 max):
+      Tool Coverage | Context Efficiency | Quality Gates | Memory Persistence
+      Eval Coverage | Security Guardrails | Cost Efficiency
+  → outputs top 3 actions with exact file paths
+  → suggests ECC skills to apply for each gap
+
+/skill-health
+  → runs node scripts/skills-health.js --dashboard
+  → panels:
+      Success Rate (30d) — sparkline charts per skill
+      Failure Patterns    — clustered failure reasons
+      Pending Amendments  — skill improvement proposals awaiting review
+      Version History     — version snapshots timeline
+  → if skills declining → suggest /evolve
+  → if pending amendments → suggest reviewing them
+
+Session End Protocol (after retro):
+  → if agents/skills underperformed: propose edit in <rule> tags
+  → if delegation went well or poorly: update ~/.claude/agents/orchestrator.md
+```
+
+**Expected outputs:** Retro report, harness scorecard with file-level actions, skill health dashboard.
+
+**Gotchas:**
+- `/harness-audit` requires `node scripts/harness-audit.js` to exist in the project; it is not a global script.
+- Do not rescore manually — use script output only (rubric version: 2026-03-16).
+- `/skill-health --json` for machine-readable output; pipe to automation.
+
+---
+
+## Playbook 10: Deploy / Ship
+
+**Purpose:** Merge branch, run all quality gates, bump version, create PR, and deploy to production.
+
+**Trigger:** "Ship this", "Deploy", "Push to main", "Create a PR", `/ship`
+
+### Chain
+
+```
+/pre-ship  (always run first)
+  → security: HTTPS, token expiry, session invalidation
+  → code: console.logs, async errors, pagination, UI loading states
+  → database: migrations in git, non-root user, connection pooling, dev/prod separation
+  → deployment (interactive): env vars, SSL cert, firewall, PM2/systemd, rollback plan, staging gate
+  → output: BLOCKERS / FAILURES / WARNINGS checklist
+  → do NOT proceed with deploy if any BLOCKERs remain
+
+/ship  (non-interactive — runs straight through, stops only for hard gates)
+  Step 0: detect platform (GitHub/GitLab) + base branch
+  Step 1: merge base branch into current branch
+  Step 2: run tests (pre-existing failures triaged, not auto-blocking)
+  Step 3: code review diff (reviewer agent)
+         test coverage check (hard gate with user override)
+         plan items verification
+  Step 4: version bump (patch auto; MINOR/MAJOR = ask)
+  Step 5: CHANGELOG update + TODOS.md check
+  Step 6: commit + git push  ← always push after commit
+  Step 7: create PR (gh pr create or glab mr create)
+  → outputs PR URL
+
+/land-and-deploy  → merge PR + deploy in one command
+  → vercel / railway / fly-io / netlify / cloudflare agent routes based on detected platform
+
+/canary  (post-deploy monitoring)
+  → monitors error rates, latency, key metrics post-deploy
+  → alerts if degradation detected
+```
+
+**Platform-specific agents:**
+- Vercel: `vercel:deploy` skill or vercel agent
+- Railway: railway agent
+- Fly.io: fly-io agent
+- Netlify: netlify agent
+- Cloudflare: cloudflare agent (Workers/Pages/KV/D1/R2)
+
+**Expected outputs:** Merged PR URL, deployment confirmation, canary monitoring active.
+
+**Gotchas:**
+- NEVER add `Co-Authored-By: Claude` in commit messages — this breaks Vercel Hobby plan deploys.
+- Always `git push` after every commit; the memory feedback loop depends on remote state.
+- `/ship` is fully non-interactive — it will run straight through. Use `/pre-ship` first if uncertain.
+- Design DNA hook fires on any .tsx write during the ship process; if it errors, it blocks the commit — fix the hook before shipping.
+- Vercel Hobby: one deployment at a time. Parallel deploys will queue.
+
+---
+
+## Cross-Cutting Rules
+
+These apply across all playbooks:
+
+| Rule | Where it matters |
+|------|-----------------|
+| `context7` before any library code | Playbooks 2, 7 |
+| `npm` only — never yarn/pnpm/bun | All install steps |
+| Verify infra first (network, auth, env vars) before code fixes | Playbook 3 |
+| Install only what was explicitly requested | All dependency installs |
+| Design DNA auto-injects on .tsx writes | Playbooks 2, 7 |
+| Never `Co-Authored-By` in commits | Playbook 10 |
+| Always `git push` after commit | Playbook 10 |
+| Advisor only for: architecture, security, stuck 2+ attempts, >10-file refactor | All |
+| `/compact` at phase transitions, never mid-implementation | Playbook 1, all |
+| Haiku model for explore/research agents; Sonnet for implementation agents | All agent spawns |

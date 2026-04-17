@@ -1,0 +1,322 @@
+---
+title: "08 — Skills"
+date: "2026-04-16"
+description: "200+ skills, how gating works, and the small set that pays for itself daily."
+order: 8
+tags: ["claude-code", "guide"]
+---
+
+`~/.claude/skills/` contains **209 entries** (skills + a few standalone `.md` helpers).
+Skills are invoked via `/skill-name` in any Claude Code session.
+Many skills belong to the **gstack** suite (preamble-based, auto-suggest on matching phrases).
+
+---
+
+## 1. Design / UI
+
+Skills for building, polishing, auditing, and evolving frontend interfaces.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `frontend-design` | Production-grade frontend with high design quality; avoids generic AI aesthetics | Building web components, pages, artifacts, or any design skill needing project context |
+| `design` | Full-spectrum design umbrella — activates all design knowledge holistically | Starting ANY design task (UI, UX, visual, copy, motion, a11y) |
+| `ui-ux-pro-max` | 67 styles, 96 palettes, 57 font pairings, 25 charts, 13 framework stacks; full build/review/fix | Any UI/UX implementation or review task |
+| `design-consultation` | Interactive design Q&A / advisory session | User wants design guidance before building |
+| `design-review` | Visual audit of a live site or screenshot with scored feedback | "Review this design", "is this good?" |
+| `design-website` | Generate premium mockup website using buildinamsterdam.com template style | Client prospect websites, mockups |
+| `algorithmic-art` | p5.js generative art with seeded randomness and interactive parameter exploration | Generative/algorithmic art, flow fields, particle systems |
+| `animate` | Add purposeful animations and micro-interactions that improve usability | "Add animation", "make this feel more alive" |
+| `arrange` | Fix layout, spacing, visual rhythm, and hierarchy | "Layout feels off", "too crowded", alignment issues |
+| `adapt` | Responsive design — breakpoints, fluid layouts, touch targets | Mobile/tablet layouts, cross-device compatibility |
+| `baseline-ui` | Validates animation durations, typography scale, a11y, layout anti-patterns in Tailwind | Building UI components, enforcing design consistency |
+| `bolder` | Amplify bland/safe designs for more visual impact and character | "Too generic", "lacks personality", "needs more impact" |
+| `canvas-design` | Beautiful visual art as .png/.pdf using design philosophy | Posters, artwork, static visual pieces |
+| `colorize` | Add strategic color to monochromatic/dull interfaces | "Looks gray", "needs more color", "too dull" |
+| `critique` | UX evaluation with quantitative scoring, persona testing, actionable feedback | Design review, "give me feedback on this" |
+| `delight` | Add moments of joy, personality, and unexpected touches | "Add polish", "make it fun", "memorable interface" |
+| `distill` | Strip designs to their essence — remove complexity, noise | "Simplify", "too busy", "clean this up" |
+| `emil-design-eng` | Emil Kowalski's philosophy on UI polish, animations, and invisible details | High-polish component design, micro-detail work |
+| `extract` | Extract reusable components, design tokens, and patterns into a design system | "Create components", "refactor repeated UI", "build design system" |
+| `fixing-accessibility` | Audit and fix ARIA labels, keyboard nav, focus, contrast, form errors | WCAG compliance, accessible interactive controls |
+| `fixing-metadata` | Fix page meta tags, OG tags, title/description issues | SEO/social metadata fixes |
+| `fixing-motion-performance` | Audit/fix animation performance: layout thrash, compositor props, scroll-linked motion | Janky/stuttering animations, CSS/JS performance |
+| `harden` | Error handling, i18n, text overflow, edge cases — production-ready UI | "Make production-ready", "handle edge cases" |
+| `normalize` | Realign UI to design system standards, spacing, tokens | "Consistency issues", "design drift", "out of sync with system" |
+| `optimize` | Diagnose/fix UI performance — loading, rendering, bundle size, images | "Slow", "laggy", "janky", "large bundle" |
+| `overdrive` | Technically ambitious implementations — shaders, spring physics, scroll-driven reveals | "Wow factor", "go all-out", extraordinary UI |
+| `pan-3d-transition` | 3D pan/swivel video transitions using Remotion | Video transitions, swivel effects |
+| `polish` | Final quality pass — alignment, spacing, micro-details before shipping | "Polish", "finishing touches", "pre-launch review" |
+| `quieter` | Tone down visually aggressive/overwhelming designs | "Too loud", "too bold", "garish", "needs refinement" |
+| `theme-factory` | Apply 10 preset themes (colors/fonts) or generate new themes for any artifact | Theming slides, docs, HTML pages, reports |
+| `typeset` | Fix font choices, hierarchy, sizing, weight, readability | "Font looks off", "bad text hierarchy", "typography polish" |
+| `clarify` | Improve unclear UX copy, error messages, microcopy, labels | "Confusing text", "unclear labels", "bad error messages" |
+| `onboard` | Design onboarding flows, empty states, first-run experiences | Onboarding, activation, new user flows |
+
+---
+
+## 2. Marketing / Growth
+
+Skills for growing products, running ads, acquiring leads, and optimizing conversion.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `grow` | Full-spectrum growth umbrella — marketing, CRO, SEO, ads, analytics | Any growth, marketing, or conversion task |
+| `marketing-ideas` | Generate marketing ideas, strategies, and tactics for SaaS/software | "I don't know how to market this", "brainstorm marketing" |
+| `marketing-psychology` | Apply psychological principles (cognitive bias, persuasion, behavioral science) to marketing | "Why do people buy", "use psychology in marketing" |
+| `paid-ads` | Campaign strategy, audience targeting, bidding, optimization for Google/Meta/LinkedIn | PPC, ad campaigns, ROAS, CPA |
+| `ad-creative` | Generate/iterate ad copy at scale — headlines, descriptions, full ad variations | "Write me some ads", "bulk ad copy", "more ad variations" |
+| `ad-creative-analysis` | Analyze competitor ad creatives (video/image) with marketing-focused breakdowns | Competitor ad swipe files, "what makes this ad work" |
+| `ads-analyst` | Full competitive ad research — extracts Meta ads, strategy report, creative deep-dive, landing pages | "Full competitor intelligence", one-command research |
+| `meta-ads-analyser` | Analyze extracted Meta ad creatives, produce strategy report with inline assets | After `/meta-ads-extractor` to generate analysis doc |
+| `meta-ads-extractor` | Extract/download Meta Ads Library images and videos | Building swipe files, downloading competitor creatives |
+| `cold-email` | Write B2B cold email + follow-up sequences that get replies | Cold outreach, SDR emails, prospecting |
+| `email-sequence` | Create multi-email drip/nurture campaigns and lifecycle flows | Onboarding emails, welcome series, re-engagement |
+| `welcome-email` | Send welcome email sequences to new clients | Post-signup/onboarding email triggers |
+| `instantly-campaigns` | Create cold email campaigns in Instantly with A/B testing | Instantly.ai campaign setup |
+| `instantly-autoreply` | Auto-generate intelligent replies to Instantly email threads using knowledge bases | Automated email responses in Instantly |
+| `page-cro` | Optimize marketing pages for conversions | "This page isn't converting", low conversion rate |
+| `form-cro` | Optimize non-signup lead capture/contact/demo forms | Form abandonment, lead form conversions |
+| `popup-cro` | Create/optimize exit-intent popups, modals, overlays, lead capture | Email popups, announcement banners, overlays |
+| `signup-flow-cro` | Optimize signup, registration, and trial activation flows | "People aren't signing up", signup abandonment |
+| `onboarding-cro` | Optimize post-signup onboarding, activation, time-to-value | Low activation rate, users sign up but don't engage |
+| `paywall-upgrade-cro` | Create/optimize in-app paywalls, upgrade modals, feature gates | Freemium conversion, "free users won't upgrade" |
+| `launch-strategy` | Plan product launches, feature announcements, go-to-market | "How do I launch this", Product Hunt, beta launch |
+| `lead-magnets` | Plan/optimize lead magnets for email capture | "What should I give away for emails", gated content |
+| `lead-magnet-launcher` | Full lead magnet funnel — landing page, access page, n8n email delivery, Vercel routes | New lead magnet from a Notion doc URL |
+| `lead-scraper` | Scrape LinkedIn Sales Navigator + enrich with verified emails via AnyMailFinder | Building lead lists for outbound sales |
+| `lead-research-assistant` | Identify high-quality leads by analyzing your business and searching target companies | B2B lead research, prospect identification |
+| `classify-leads` | Classify leads with LLM (e.g. product SaaS vs agency) | "Filter leads by type", lead categorization |
+| `casualize-names` | Convert formal names to casual first names/company names for cold email | Cold email personalization, lead data prep |
+| `scrape-leads` | Scrape and verify leads via Apify, classify with LLM, enrich emails, save to Sheets | "Find leads", "generate prospect lists" |
+| `gmaps-leads` | Scrape Google Maps for B2B leads with website enrichment and contact extraction | Local business lead lists, contractor databases |
+| `instagram-lead-scorer` | Score Instagram followers as leads, enrich profiles, score qualification, generate outreach DMs | "Score leads", "find leads in followers" |
+| `upwork-apply` | Scrape Upwork jobs and generate personalized proposals/cover letters | Finding and applying to Upwork listings |
+| `ab-test-setup` | Plan, design, and implement A/B tests and experiments | "A/B test", "split test", "statistical significance" |
+| `analytics-tracking` | Set up, improve, or audit GA4, GTM, conversion tracking, Mixpanel, Segment | "Set up tracking", "analytics isn't working" |
+| `competitor-alternatives` | Create competitor comparison/alternative pages for SEO and sales | "[Product] vs [Product]" pages, alternative pages |
+| `customer-research` | Conduct/analyze customer research — interviews, survey analysis, VOC, Reddit mining | "Talk to customers", "analyze transcripts", "review mining" |
+| `landing-page-analysis` | Analyze landing pages — screenshot + structured marketing analysis | Competitor page analysis, funnel teardowns |
+| `programmatic-seo` | Create SEO-driven pages at scale using templates and data | "Programmatic SEO", location/integration pages, pSEO |
+| `seo-audit` | Audit/diagnose SEO issues — technical, on-page, meta, Core Web Vitals | "Why am I not ranking", "SEO audit", traffic drops |
+| `ai-seo` | Optimize content for AI search engines — get cited by LLMs, AI Overviews | "AI SEO", "optimize for ChatGPT/Perplexity", "LLM mentions" |
+| `schema-markup` | Add/fix schema markup and structured data (JSON-LD, rich snippets) | "Schema markup", "structured data", "rich results" |
+| `pricing-strategy` | Pricing decisions, packaging, and monetization strategy | "How much should I charge", freemium, pricing tiers |
+| `referral-program` | Create/optimize referral, affiliate, or word-of-mouth programs | "Referral program", "affiliate", "viral loop" |
+| `churn-prevention` | Cancel flows, save offers, dunning, failed payment recovery, retention | "Churn is too high", "people keep canceling" |
+| `free-tool-strategy` | Plan/evaluate/build free tools for marketing (calculators, generators, lead magnets) | "Engineering as marketing", free ROI calculators |
+| `sales-enablement` | Sales collateral, pitch decks, one-pagers, objection handling, demo scripts | "Sales materials", "pitch deck", "help my sales team" |
+| `site-architecture` | Plan/map website page hierarchy, navigation, URL structure, internal linking | "What pages do I need", sitemap, information architecture |
+| `product-marketing-context` | Create `.agents/product-marketing-context.md` — single source of truth for positioning/ICP | Session setup before any marketing task |
+| `onboarding-kickoff` | Automated client onboarding — generate leads, create email campaigns, auto-reply setup | Post-kickoff call client automation |
+| `create-proposal` | Generate PandaDoc proposals from client info or call transcripts | "Create a proposal", "generate a quote" |
+| `investor-outreach` | Draft cold emails, warm intro blurbs, follow-ups for fundraising | VC/angel outreach, "write an investor email" |
+| `investor-materials` | Create pitch decks, one-pagers, investor memos, financial models, accelerator applications | Investor-facing documents, fundraising materials |
+| `market-research` | Market sizing, competitive analysis, industry intelligence with source attribution | "Market research", competitive analysis, due diligence |
+
+---
+
+## 3. Content / Writing
+
+Skills for writing, editing, humanizing, and distributing content.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `content` | Full-spectrum content umbrella — all writing, storytelling, distribution knowledge | Creating any content type |
+| `content-strategy` | Plan what content to create — topic clusters, editorial calendar, content pillars | "What should I write about", "content roadmap" |
+| `content-engine` | Platform-native content systems — X, LinkedIn, TikTok, YouTube, newsletters, multi-platform | Social posts, threads, scripts, content calendars |
+| `content-scout` | Competitive content intelligence — scrapes competitor Instagram, identifies top performers, gaps | "What should I post", "scout competitors", content ideas |
+| `content-research-writer` | Research-backed content writing with citations, hooks, outline iteration, real-time feedback | Long-form articles, research-backed blog posts |
+| `copywriting` | Write/rewrite marketing copy for any page — homepage, landing, pricing, feature, about | "Write copy for X", "improve this copy", hero sections |
+| `copy-editing` | Edit, review, and improve existing marketing copy | "Edit this copy", "tighten this up", "polish" |
+| `humanise-text` | Transform AI-generated/robotic text into natural human-written content | "Humanize this", "remove AI patterns", avoid AI detection |
+| `article-writing` | Write articles, guides, blog posts, tutorials, newsletter issues in a distinctive voice | Long-form content needing voice consistency and structure |
+| `viral-video-script` | Production-ready viral video script from a brand brief with adversarial review gates | "Write a video script", "brand video", "viral script" |
+| `daily-content` | Generate 5 Instagram video ideas per day (hot takes, value demos, tutorials, CTA posts) | "What should I post today", daily content lineup |
+| `social-content` | Create/schedule/optimize social media content for all platforms | "LinkedIn post", "Twitter thread", "content calendar" |
+| `crosspost` | Multi-platform distribution — X, LinkedIn, Threads, Bluesky, adapted per platform | Distribute content across social platforms |
+| `internal-comms` | Write status reports, 3P updates, company newsletters, incident reports | Any internal communication |
+| `office-hours` | YC Office Hours — startup mode (6 forcing questions) or builder mode (design thinking) | "I have an idea", "help me think through this", brainstorming |
+| `tailored-resume-generator` | Analyze job descriptions and generate tailored resumes highlighting relevant experience | Job applications, resume optimization |
+
+---
+
+## 4. Carousels & Social Formats
+
+End-to-end carousel production pipeline and viral social content tools.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `carousel` | Full end-to-end carousel pipeline — competitor analysis, ideas, script, build, caption, ManyChat | "Make me a carousel", "carousel pipeline" |
+| `carousel-analysis` | Analyze competitor carousels for winning patterns, formats, engagement data | "Analyze carousels", "what carousel styles perform best" |
+| `carousel-caption` | Write Instagram caption for a carousel post | "Write the caption", "IG caption for carousel" |
+| `carousel-creator` | Design and build HTML carousel slides, screenshot to PNG via Playwright | "Build this carousel", "design my carousel" |
+| `carousel-ideator` | Generate data-backed carousel topic ideas using competitor analysis | "Carousel ideas", "what carousel should I make" |
+| `carousel-manychat` | Write ManyChat DM auto-reply messages for carousel comment triggers | "ManyChat messages", "DM flow", "auto-reply" |
+| `carousel-scripter` | Script every slide for Instagram/LinkedIn/TikTok carousels | "Script this carousel", "write carousel slides" |
+| `linkedin-carousel` | Create LinkedIn carousel (PDF post) — script, visuals, caption | "LinkedIn carousel", "LinkedIn slides" |
+| `tiktok-carousel` | Create TikTok photo carousel in 9:16 vertical format — script, visuals, caption | "TikTok carousel", "TikTok slides" |
+| `frontend-slides` | Create animation-rich HTML presentations or convert PPT/PPTX to web | "Build a presentation", "convert PPT to web" |
+| `linkedin-swipefile` | Fetch 5 viral LinkedIn posts from indie/AI/founder niches, commit to swipefile repo | `/linkedin-swipefile` |
+| `x-swipefile` | Fetch 20 viral X/Twitter posts from indie/AI/vibe-coding niches, commit to swipefile | `/x-swipefile` |
+| `reddit-swipefile` | Fetch top Reddit posts from indie hacking/AI subreddits, commit to swipefile | `/reddit-swipefile` |
+| `linkedin-viral` | Find viral LinkedIn posts in Claude Code, AI, vibe-coding, tech niches with hook analysis | Content inspiration from top-performing LinkedIn posts |
+| `reddit-viral` | Find viral/trending Reddit posts in tech/AI/indie niches with engagement analysis | Reddit content hooks and inspiration |
+| `twitter-algorithm-optimizer` | Rewrite tweets using Twitter's open-source algorithm insights for max reach | "Optimize this tweet", improve tweet engagement |
+| `x-api` | X/Twitter API integration — post tweets/threads, read timelines, search, analytics | Programmatic X interactions |
+
+---
+
+## 5. YouTube / Video
+
+Skills for YouTube competitive intelligence, video production, and distribution.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `youtube-outliers` | Find viral YouTube videos in your niche for competitive intelligence | "Find YouTube outliers", "monitor competitors" |
+| `youtube-description` | Transcribe local video and generate complete YouTube description with timestamps | "YouTube description", "describe this video", video metadata |
+| `cross-niche-outliers` | Find viral YouTube videos from adjacent niches to extract patterns and hooks | Cross-niche content inspiration, "find content from adjacent space" |
+| `title-variants` | Generate title variants from outlier analysis | "Create title variations", "generate YouTube titles" |
+| `thumbnail-generator` | Generate YouTube thumbnails by face-swapping onto templates, modify colors/text | "Create thumbnails", "recreate thumbnails" |
+| `recreate-thumbnails` | Face-swap YouTube thumbnails to feature your face using AI | "Recreate thumbnails", "face swap thumbnails" |
+| `video-downloader` | Download YouTube videos in customizable quality/format, audio-only MP3 option | "Download this YouTube video" |
+| `video-edit` | Edit talking-head videos — remove silences with neural VAD, add 3D swivel transitions | "Edit video", "remove silences", "add jump cuts" |
+| `video-editor` | TikTok/Reels/Shorts editor — captions, overlays, music, talking-head, clip modes | Modular short-form video editing |
+| `video-scheduling` | Schedule Instagram Reels via Zernio API | "Schedule to Instagram", "post reels", "check IG schedule" |
+| `transcribe` | Transcribe video from any URL (YouTube, Instagram, X, TikTok, 1000+ sites) | "Transcribe this video", paste any video URL |
+| `pan-3d-transition` | 3D pan/swivel transition effects using Remotion | Video transition effects |
+
+---
+
+## 6. Engineering
+
+Skills for building, testing, debugging, deploying, and maintaining software.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `fullstack` | Full-spectrum dev umbrella — architecture, patterns, security, quality | Building/reviewing any feature end-to-end |
+| `backend-patterns` | Backend architecture patterns, API design, DB optimization for Node/Express/Next.js | Backend architecture decisions |
+| `frontend-patterns` | React/Next.js patterns, state management, performance, UI best practices | Frontend code patterns and best practices |
+| `api-design` | REST API design — resource naming, status codes, pagination, versioning, rate limiting | Designing production APIs |
+| `nextjs-turbopack` | Next.js 16+ and Turbopack — incremental bundling, FS caching, dev speed | Next.js / Turbopack configuration and optimization |
+| `coding-standards` | Universal TypeScript/JavaScript/React/Node.js coding standards | Code standards enforcement |
+| `documentation-lookup` | Use Context7 MCP for up-to-date library docs instead of training data | Framework setup, API references, code examples |
+| `doc-coauthoring` | Structured workflow for co-authoring docs, proposals, and technical specs | "Write documentation", "draft a spec", technical writing |
+| `document-release` | Post-ship doc updates — README, ARCHITECTURE, CHANGELOG, CLAUDE.md | "Update the docs", "sync documentation" after shipping |
+| `tdd-workflow` | Test-driven development with 80%+ coverage — unit, integration, E2E | Writing new features, fixing bugs, refactoring |
+| `eval-harness` | Formal evaluation framework implementing eval-driven development (EDD) | Setting up session evals, EDD methodology |
+| `verification-loop` | Comprehensive verification system for Claude Code sessions | Multi-step verification before claiming done |
+| `qa` | Systematically test a web app, fix bugs, commit fixes atomically with before/after health scores | "QA this site", "test and fix", "find bugs" |
+| `qa-only` | Report-only QA — structured bug report with screenshots, repro steps, health score | "Just report bugs", "QA report only" |
+| `webapp-testing` | Playwright-based local web app testing — verify frontend, debug UI, capture screenshots | Local dev testing, UI verification |
+| `e2e-testing` | Playwright E2E testing patterns, Page Object Model, CI/CD, flaky test strategies | E2E test setup, Playwright configuration |
+| `benchmark` | Performance regression detection — page load, Core Web Vitals, resource sizes, PR comparison | "Performance", "benchmark", "bundle size", "web vitals" |
+| `diagnose` | Root-cause-first debugging for pipelines and integrations; infra-before-code | "Something is broken and I don't know why" |
+| `investigate` | Systematic debugging: investigate → analyze → hypothesize → implement; no fixes without root cause | "Debug this", "why is this broken", "root cause analysis" |
+| `land-and-deploy` | Land + deploy workflow — merge PR, wait for CI, verify production via canary | "Merge and verify", "land it", "deploy" |
+| `pre-ship` | Pre-ship checklist — HTTPS, token expiry, session invalidation, DB hygiene, deployment ops | "Ready to deploy", "pre-launch", "ship checklist" |
+| `gstack-review` | Pre-landing PR review — SQL safety, LLM trust boundary, conditional side effects | "Review this PR", "code review", "pre-landing review" |
+| `hook-security` | Install/audit git pre-commit hooks blocking secrets, large files, sensitive paths | New repo setup, hardening CI, secret prevention |
+| `mcp-builder` | Guide for creating high-quality MCP servers (Python FastMCP or Node/TypeScript) | Building MCP servers to integrate external APIs |
+| `mcp-server-patterns` | MCP server patterns with Node/TypeScript SDK — tools, resources, prompts, Zod, stdio/HTTP | MCP server development |
+| `modal-deploy` | Deploy execution scripts to Modal cloud | "Deploy to Modal", "push code to cloud" |
+| `add-webhook` | Add new Modal webhooks for event-driven execution | "Create a webhook", "add an endpoint" |
+| `local-server` | Run Claude orchestrator locally with Cloudflare tunneling | "Run locally", "test webhooks locally" |
+| `routines` | Create, fire, and manage Claude Code cloud routines (cron, webhook, API-triggered) | "Schedule a remote agent", "set up recurring task" |
+| `dmux-workflows` | Multi-agent orchestration using dmux (tmux pane manager) across Claude Code, Codex, OpenCode | Parallel agent workflows, multi-agent dev |
+| `subagent-delegator` | Spawn isolated subagents with minimal context before delegating complex tasks | Context-efficient agent delegation |
+| `planning-with-files` | Manus-style file-based planning — task_plan.md, findings.md, progress.md | Multi-step projects with >5 tool calls, session recovery |
+| `strategic-compact` | Suggest manual context compaction at logical intervals | Preserving context through long task phases |
+| `claude-api` | Build/debug/optimize Claude API and Anthropic SDK apps with prompt caching | Code importing `anthropic`/`@anthropic-ai/sdk`, Claude API work |
+
+---
+
+## 7. Security
+
+Skills for auditing, hardening, and protecting applications.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `secure` | Full-spectrum security umbrella — OWASP, auth, input validation, secrets, infra | Reviewing/hardening any code handling user data or auth |
+| `cso` | Chief Security Officer mode — secrets archaeology, supply chain, CI/CD, LLM/AI security, OWASP, STRIDE | "Security audit", "threat model", "CSO review" |
+| `owasp-security` | OWASP Top 10:2025, ASVS 5.0, Agentic AI security (2026) | Code review for security vulnerabilities |
+| `guard` | Full safety mode — combines `/careful` (destructive command warnings) + `/freeze` (directory lock) | "Guard mode", "full safety", "touching production" |
+| `harden` | Production-ready UI — error handling, i18n, text overflow, edge cases | "Make production-ready", edge case hardening |
+| `hook-security` | Git pre-commit hooks blocking secrets, large files, sensitive paths | New repo security setup, preventing secret leaks |
+
+---
+
+## 8. Session Rituals
+
+Skills for starting, ending, pausing, and managing Claude Code sessions.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `resume` | Load Obsidian vault context, deliver precise session status report | Start of any session — `/resume` |
+| `wrap-up` | End-of-session ritual — summarize work, update vault memory, create handoff note | End of session — `/wrap-up` |
+| `retro` | Weekly engineering retrospective — commit history analysis, per-person breakdown, trend tracking | "Weekly retro", end of sprint |
+| `autoplan` | Auto-review pipeline — runs CEO, design, and eng reviews sequentially with auto-decisions | "Auto review", "review this plan automatically" |
+| `setup-audit` | Audit Claude Code setup — review rules for bloat/conflicts, weekly config health check | "Audit my Claude setup", weekly config review |
+| `permissions-analyzer` | Scan session history for bash commands that should be auto-approved in settings.json | "Analyze my permissions", "reduce permission prompts" |
+| `freeze` | Lock edits to a specific directory for the session | "Only edit files in X", production debugging safety |
+| `unfreeze` | Clear the freeze boundary, allow edits everywhere again | "Unfreeze", "remove freeze" |
+| `careful` | Activate safe-mode — blocks destructive commands, requires explicit confirmation | "Be careful", "we're touching production" |
+| `office-hours` | YC Office Hours — startup/builder brainstorming modes, saves design doc | "I have an idea", "is this worth building" |
+| `plan-ceo-review` | CEO/founder plan review — scope expansion, challenge premises, find 10-star product | "Think bigger", "expand scope", "strategy review" |
+| `plan-design-review` | Designer's eye plan review — rates dimensions 0-10, fixes plan to reach 10 | Design plan critique before implementation |
+| `plan-eng-review` | Eng manager plan review — architecture, data flow, edge cases, test coverage | "Engineering review", "lock in the plan" |
+| `strategic-compact` | Suggest context compaction at logical intervals | Long sessions, context budget management |
+| `canary` | Post-deploy canary monitoring — browser errors, perf regressions, screenshots | "Monitor deploy", "post-deploy check" |
+| `ship` | Ship workflow — merge base, run tests, bump VERSION, update CHANGELOG, create PR | "Ship", "create a PR", "ready to merge" |
+| `land-and-deploy` | Merge PR, wait for CI, verify production via canary checks | "Merge and verify", after `/ship` creates PR |
+| `document-release` | Post-ship doc updates across README/CHANGELOG/CLAUDE.md | "Update the docs" after shipping |
+| `project-standards` | Load project-specific standards from CLAUDE.md, establish session context | Session start for any project |
+
+---
+
+## 9. Apps & Integrations
+
+Skills for managing specific platforms and third-party services.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `skool` | Manage Skool courses — create/update content, upload pages, add resources, notifications | Skool course/community management |
+| `skool-monitor` | Monitor Skool communities — read posts, create posts, reply, like, search | "Check Skool", "read community posts" |
+| `skool-rag` | Query Skool community content via RAG pipeline with vector search | "Search Skool knowledge", "find community answers" |
+| `gmail-inbox` | Manage emails across multiple Gmail accounts — read, label, archive | "Check email", "manage Gmail" |
+| `gmail-label` | Auto-label Gmail emails — Action Required, Waiting On, Reference | "Label emails", "triage inbox" |
+| `slack-gif-creator` | Create animated GIFs optimized for Slack (constraints, validation, animation concepts) | "Make me a GIF for Slack" |
+| `invoice-organizer` | Automatically organize invoices/receipts — extract info, rename, sort into folders | Tax prep, "organize my invoices" |
+| `reddit-fetch` | Fetch Reddit content via Gemini CLI or curl fallback (handles 403/blocked) | Accessing Reddit URLs, researching Reddit topics |
+| `meeting-insights-analyzer` | Analyze meeting transcripts — behavioral patterns, communication insights, filler words | "Analyze this meeting", communication improvement |
+| `x-api` | X/Twitter API integration — tweets, threads, timelines, search, analytics | Programmatic X/Twitter work |
+
+---
+
+## 10. Document Formats
+
+Skills for working with specific file formats.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `pdf` | Read/extract, merge/split, rotate, watermark, OCR, fill forms, create PDFs | Any PDF file operation |
+| `pptx` | Create, read, edit, combine slide decks; extract text; templates/notes | Any .pptx file — "deck", "slides", "presentation" |
+| `docx` | Create, read, edit Word documents — tables of contents, headings, page numbers, letterheads | Any .docx/.Word operation |
+| `xlsx` | Open, read, edit, fix, create spreadsheets — formulas, charts, data cleaning | Any .xlsx/.csv/.tsv spreadsheet work |
+| `frontend-slides` | Create animation-rich HTML presentations or convert PPTX to web | Web-based slide decks |
+
+---
+
+## 11. Meta / Research / Session Tools
+
+Skills for research, decision-making, context engineering, and session management.
+
+| Skill | What it does | When to use |
+|---|---|---|
+| `deep-research` | Enterprise-grade multi-source research with citation tracking and source credibility scoring | "Deep research", "comprehensive analysis", "research report" |
+| `llm-council` | Run a decision through 5 AI advisors who independently analyze, peer-review, and synthesize | "Council this", "war room this", "pressure-test this" |
+| `literature-research` | Search academic literature, PubMed, find papers, do literature reviews | Academic research, "search PubMed", literature reviews |
+| `domain-name-brainstormer` | Generate domain name ideas and check availability across TLDs | "Brainstorm domain names", new project naming |
+| `teach-impeccable` | One-time setup — gather design context for project, save to AI config | Initial project design configuration |
+| `audit` | Technical quality checks — accessibility, performance, theming, responsive, anti-patterns with P0-P3 scoring | "Accessibility check", "technical quality review" |
+| `project-standards` | Load project-specific CLAUDE.md standards, establish session context | Session start, project switching |
+| `planning-with-files` | File-based planning — task_plan.md, findings.md, progress.md for complex tasks | Multi-step projects, post-`/clear` session recovery |
