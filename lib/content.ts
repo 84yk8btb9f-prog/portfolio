@@ -11,6 +11,8 @@ export type ContentItem = {
   status?: string;
   tags?: string[];
   order?: number;
+  group?: string;        // visual topic group inside a folder
+  groupSlug?: string;    // sortable slug for groups (e.g. "01-fundamentals")
   folder?: string;       // parent folder slug, if nested
   content: string;
 };
@@ -41,6 +43,8 @@ function readMdx(filePath: string, slugParts: string[]): ContentItem {
     status: data.status,
     tags: data.tags ?? [],
     order: typeof data.order === "number" ? data.order : undefined,
+    group: typeof data.group === "string" ? data.group : undefined,
+    groupSlug: typeof data.groupSlug === "string" ? data.groupSlug : undefined,
     folder: slugParts.length > 1 ? slugParts[0] : undefined,
     content,
   };
