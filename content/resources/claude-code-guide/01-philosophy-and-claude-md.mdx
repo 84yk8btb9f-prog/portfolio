@@ -12,9 +12,9 @@ tags: ["claude-code", "guide"]
 
 ---
 
-## 1. Identity & Working Style (from `~/MyVault/CLAUDE.md`)
+## 1. Identity & Working Style
 
-**Who:** the author — builder, marketer, developer. Runs marketing funnels, builds Claude Code automation (skills, hooks, agents), and ships web products. Thinks in systems; wants everything automated or templated.
+**Who:** builder, marketer, developer. Runs marketing funnels, builds Claude Code automation (skills, hooks, agents), and ships web products. Thinks in systems; wants everything automated or templated.
 
 **Stack:** Next.js · TypeScript · Tailwind · Vercel · n8n · Telegram · Meta Ads · Obsidian
 
@@ -33,7 +33,7 @@ tags: ["claude-code", "guide"]
 
 ---
 
-## 2. Global Rules (`~/.claude/CLAUDE.md`)
+## 2. Global Rules
 
 ### Package Manager
 - Use `npm` exclusively — **never** yarn, pnpm, or bun.
@@ -42,13 +42,13 @@ tags: ["claude-code", "guide"]
 - Verify infrastructure first (network, auth, env vars, API access) **before** attempting code fixes.
 
 ### Installation Discipline
-- When installing skills/plugins/packages, install ONLY what was explicitly requested — no exploring or adding extras.
+- Install ONLY what was explicitly requested — no exploring or adding extras.
 
 ### Autonomy Boundaries
 - **Act independently on:** running commands, file edits, fixing your own errors, obvious decisions.
 - **Confirm before:** anything destructive, irreversible, or visible to others — pushes, deploys, deletions, messages, scope changes.
 
-### General Code Rules (also in `~/MyVault/CLAUDE.md`)
+### General Code Rules
 - Always check for applicable skills before acting — even 1% chance = invoke.
 - Use `context7` before writing code for any library.
 - Prefer editing existing files over creating new ones.
@@ -63,19 +63,19 @@ Output a title at the start of **every** session:
 Session: [snake_case_title]
 ```
 
-### `/resume` command
-Reads `~/MyVault/CLAUDE.md` + latest handoff note + active project indexes. Gives a precise status report. Trigger: user runs `/resume`.
+### `/resume` Command
+Reads `~/MyVault/CLAUDE.md` + latest handoff note + active project indexes. Returns a precise status report. Trigger: user runs `/resume`.
 
-### `/wrap-up` command
+### `/wrap-up` Command
 Summarizes session, updates `~/MyVault/CLAUDE.md`'s "Current State" section, creates handoff note, links new files. Trigger: user runs `/wrap-up`.
 
-### Session End Protocol (self-healing)
+### Session End Protocol
 - **Self-heal:** If any agent/skill underperformed, propose edit in `<rule>` tags.
 - **Improve orchestrator:** If delegation went well or poorly, update `~/.claude/agents/orchestrator.md`.
 
 ---
 
-## 4. Plan → Execute → Verify Workflow
+## 4. Plan → Execute → Verify
 
 Apply for **non-trivial tasks** (>1 file, unclear scope, risky changes):
 
@@ -83,7 +83,7 @@ Apply for **non-trivial tasks** (>1 file, unclear scope, risky changes):
 2. **Execute** — implement per plan; parallelize independent steps
 3. **Verify** — run `superpowers:verification-before-completion` before claiming done; verify actual behavior, not a proxy for it
 
-> **Rule: Never claim done without verifying the exact production behavior requested.**
+> **Never claim done without verifying the exact production behavior requested.**
 
 ---
 
@@ -118,7 +118,7 @@ Fire when:
 - Building a new UI page or major component from scratch
 - User gives visual/design feedback on existing UI
 
-### Other skill triggers (only when explicitly needed)
+### Other Skill Triggers
 | Skill | Condition |
 |---|---|
 | `claude-mem:mem-search` | Prior session context needed |
@@ -132,13 +132,13 @@ Fire when:
 
 > `advisor` uses Opus — expensive. Only call it when the decision genuinely requires deeper reasoning.
 
-### CALL advisor when:
+### Call advisor when:
 - Cross-system architecture decision (auth strategy, data model design, infra choice)
 - Security-sensitive design (auth flows, encryption, API security)
 - Stuck after 2+ failed attempts at a bug
 - Major refactor spanning >10 files
 
-### NEVER call advisor for:
+### Never call advisor for:
 - Audits, analysis, or setup review tasks
 - Single-file changes or config edits
 - Routine implementation (components, API routes, migrations)
@@ -157,7 +157,7 @@ Fire when:
 
 **Parallelism rule:** Parallel for independent domains. Sequential when B needs A's output.
 
-### Subagent Model Routing Table
+### Subagent Model Routing
 
 | Use **haiku** | Use **sonnet** (default) |
 |---|---|
@@ -194,29 +194,26 @@ Full reference: `~/.claude/rules/agents.md`
 
 ---
 
-## 8. Context Budget Rules
+## 8. Context Budget
 
 - After every response, mentally check session length.
 - **Trigger warning if:** 20+ back-and-forth exchanges completed OR user is switching to a clearly unrelated new task.
-- Warning text to output:
+- Warning text:
   > "Context is getting large — run `/compact` to summarize history and reduce cost before we continue."
-- Never let context grow silently past the point where it costs more than the work is worth.
 
-### Context Discipline (subagents)
-- Compress context passed to subagents — never forward raw output.
+**Subagent rule:** Compress context passed to subagents — never forward raw output.
 
 ---
 
 ## 9. MCP Rules
 
-**Use most specific MCP available.**
+**Use the most specific MCP available.**
 
-### Critical MCP Rules
 | Rule | Detail |
 |---|---|
 | `context7` | Mandatory before writing code for any library/framework. Always: `resolve-library-id` → `query-docs`. |
 | Apify | Sequence: `search-actors` → `fetch-actor-details` → `call-actor` (never guess names) |
-| GitHub | Use `gh` CLI via Bash (`gh pr`, `gh issue`, etc.) — not `mcp__github__` for CLI tasks |
+| GitHub | Use `gh` CLI via Bash (`gh pr`, `gh issue`, etc.) |
 
 ### MCP Directory
 
@@ -226,7 +223,7 @@ Full reference: `~/.claude/rules/agents.md`
 | GitHub | `mcp__github__` | Issues, PRs, file contents, branches, commits, reviews |
 | Gmail | `mcp__claude_ai_Gmail__` | Read/search email, create drafts. Never send without explicit approval. |
 | Google Calendar | `mcp__claude_ai_Google_Calendar__` | List/create/update events, find free time, respond to invites |
-| Obsidian | `mcp__obsidian__` | (deprecated in favor of lean-ctx — see below) |
+| Obsidian | `mcp__obsidian__` | Deprecated in favor of lean-ctx — see section 10. |
 | context7 | `mcp__context7__` | Up-to-date library docs |
 | Next.js DevTools | `mcp__next-devtools__` | Next.js docs, component upgrades, browser eval |
 | Angular | `mcp__angular__` | Angular CLI, docs, best practices. Use `list_projects` first. |
@@ -235,7 +232,7 @@ Full reference: `~/.claude/rules/agents.md`
 | Miro | `mcp__miro__` | Create/read diagrams, tables, docs on Miro boards |
 | Apify | `mcp__apify__` | Web scraping, data extraction |
 | Playwright | `mcp__playwright__` | Browser automation, E2E testing, screenshots, form filling |
-| Peekaboo | `mcp__peekaboo__` | Screenshot/screen capture and visual analysis of current screen |
+| Peekaboo | `mcp__peekaboo__` | Screenshot/screen capture and visual analysis |
 | Memory (graph) | `mcp__memory__` | Persistent knowledge graph: entities, relations, observations |
 | claude-mem search | `mcp__plugin_claude-mem_mcp-search__` | Search session context database; use `smart_search` for general queries |
 
@@ -245,11 +242,9 @@ Full reference: `~/.claude/rules/mcp.md`
 
 ## 10. lean-ctx — Context Engineering Layer
 
-> Source: `~/.claude/CLAUDE.md` (injected) + `~/CLAUDE.md` (home project file)
+### Mandatory Tool Mapping
 
-### Mandatory Tool Mapping (CRITICAL — not optional)
-
-| ALWAYS USE | NEVER USE | Why |
+| Always use | Never use | Why |
 |---|---|---|
 | `ctx_read(path)` | `Read` / `cat` / `head` / `tail` | Cached, 8 compression modes, re-reads ~13 tokens |
 | `ctx_shell(command)` | `Shell` / `bash` / terminal | Pattern compression for git/npm/cargo output |
@@ -267,10 +262,10 @@ Full reference: `~/.claude/rules/mcp.md`
 | `entropy` | Shannon + Jaccard filtering |
 | `lines:N-M` | Specific line range (e.g. `lines:400-500`) |
 
-### Compatibility Note
+### Compatibility
 - lean-ctx replaces READ operations only. Native Edit/Write/StrReplace remain unchanged.
 - If Edit requires native Read and Read is unavailable → use `ctx_edit(path, old_string, new_string)`.
-- NEVER loop on Edit failures — switch to `ctx_edit` immediately.
+- Never loop on Edit failures — switch to `ctx_edit` immediately.
 - Write, Delete, Glob → use normally.
 
 ---
@@ -279,7 +274,7 @@ Full reference: `~/.claude/rules/mcp.md`
 
 **Vault path:** `~/MyVault/`
 
-**Access method:** Use lean-ctx tools directly on the vault path — NOT `mcp__obsidian__` tools.
+**Access method:** Use lean-ctx tools directly on the vault path — not `mcp__obsidian__` tools.
 
 | Task | Tool |
 |---|---|
@@ -288,7 +283,7 @@ Full reference: `~/.claude/rules/mcp.md`
 | Map vault structure | `ctx_tree("~/MyVault", depth)` |
 | List area or project files | `ctx_tree("~/MyVault/01-Areas", 2)` |
 
-### Context Loading Order (before any project work)
+### Context Loading Order
 1. Check if the project's `CLAUDE.md` already has `@path` imports — if so, context is loaded.
 2. If not, run `ctx_search` for the project/product name to find relevant notes.
 3. Check `01-Areas/_context/` for canonical business docs (brand voice, ICP, positioning).
@@ -308,7 +303,7 @@ Full reference: `~/.claude/rules/mcp.md`
 | File | Contents |
 |---|---|
 | `brand-voice.md` | Tone, personality, writing style, words to use/avoid |
-| `icp.md` | Ideal customer profile — who we're building for |
+| `icp.md` | Ideal customer profile |
 | `positioning.md` | Market position, competitors, differentiators |
 | `products.md` | Product summaries, pricing, key features |
 
@@ -321,9 +316,7 @@ Full reference: `~/.claude/rules/mcp.md`
 
 ---
 
-## 12. Knowledge Capture Flow (Fully Automatic)
-
-From `~/MyVault/CLAUDE.md`:
+## 12. Knowledge Capture Flow
 
 1. Session ends → `SessionEnd` hook → `flush.py` extracts knowledge → `daily/YYYY-MM-DD.md`
 2. After 6 PM → `compile.py` auto-runs → concepts/connections created in `knowledge/`
@@ -352,7 +345,7 @@ MyVault/
 
 ---
 
-## 13. Design Rules (`~/.claude/rules/design-dna.md`)
+## 13. Design Rules
 
 ### Aesthetic
 Clean, polished, modern SaaS. Apple-level attention to detail. Liquid glass / glassmorphism where appropriate. Every pixel intentional.
@@ -383,23 +376,23 @@ When user gives design feedback → update `~/.claude/projects/-Users-<you>/memo
 
 ### UI Components
 Check shadcn/ui then Magic UI before building custom:
-```
+```bash
 npx shadcn@latest add <component>
 npx magicui-cli@latest add <component>
 ```
 
 ---
 
-## 14. Ollama Delegation (Token Saving)
+## 14. Ollama Delegation
 
-**Automatic** — no user prompt needed.
+Automatic — no user prompt needed.
 
 ### When to delegate:
 - Boilerplate (components, CRUD, type definitions)
 - Unit tests / test stubs
 - Simple utility functions
 - Documentation / comments
-- Any task where Claude is just producing code without needing project-wide context
+- Any task where Claude is producing code without needing project-wide context
 
 ### When NOT to delegate:
 - Architecture decisions, complex debugging, multi-file refactors
@@ -421,7 +414,7 @@ Full script: `~/.claude/rules/ollama-delegate.md`
 
 ---
 
-## 15. Second Brain Hub (`~/MyVault/index.md`)
+## 15. Second Brain Hub
 
 ### Areas (ongoing responsibilities)
 - `[[marketing-growth]]` — Copywriting, ads, landing pages, funnels
@@ -442,7 +435,7 @@ Full script: `~/.claude/rules/ollama-delegate.md`
 
 ---
 
-## 16. CLAUDE.md File Hierarchy Summary
+## 16. CLAUDE.md File Hierarchy
 
 | File | Scope | Purpose |
 |---|---|---|
@@ -453,7 +446,7 @@ Full script: `~/.claude/rules/ollama-delegate.md`
 
 ---
 
-## 17. Key Principles Summary
+## 17. Key Principles
 
 1. **npm only** — never yarn/pnpm/bun
 2. **Infrastructure before code** — debug infra first

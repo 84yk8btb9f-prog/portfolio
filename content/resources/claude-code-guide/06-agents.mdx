@@ -8,7 +8,7 @@ groupSlug: "04-automation"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** An agent is a specialist Claude spawned inside your session — its own prompt, its own tools, its own model. Use them to parallelize, to hand off narrow tasks (security review, git history), or to run a cheap Haiku for lookups instead of burning Sonnet.
+> An agent is a specialist Claude spawned inside your session — its own prompt, its own tools, its own model. Use them to parallelize, to hand off narrow tasks (security review, git history), or to run cheap `haiku` for lookups instead of burning `sonnet`.
 
 ---
 
@@ -101,7 +101,7 @@ All agents live in `~/.claude/agents/`. Each is a Markdown file with YAML frontm
   - Reads 2-3 existing components to mirror naming, export, and prop patterns
   - Enforces Server Component defaults in Next.js App Router; avoids unnecessary `"use client"`
   - Applies design-dna rules: no emojis, no gradient backgrounds, physics-based animations, Apple-level polish
-  - Checks `~/.claude/projects/-Users-<you>/memory/design_preferences.md` for accumulated preferences
+  - Checks `~/.claude/projects/-Users-<you>/memory/design_preferences.md` for accumulated design preferences
 - **Limitations:** Can edit files; does not review its own output (use reviewer or design-review after)
 - **Typical inputs:** Feature description; relevant component/page file paths; design system reference
 
@@ -138,7 +138,7 @@ All agents live in `~/.claude/agents/`. Each is a Markdown file with YAML frontm
 
 ### build
 - **Model:** sonnet | **Color:** blue
-- **Tools:** Read, Glob, Grep, Edit, Write, Bash | **permissionMode:** acceptEdits | **maxTurns:** 25
+- **Tools:** Read, Glob, Grep, Edit, Write, Bash | **permissionMode:** `acceptEdits` | **maxTurns:** 25
 - **Trigger:** Build failures, TypeScript errors, lint failures, or code quality issues
 - **Capabilities:**
   - Auto-detects toolchain: tsc, Next.js, Vite, Turbo, ESLint, Prettier, monorepo setup
@@ -154,7 +154,7 @@ All agents live in `~/.claude/agents/`. Each is a Markdown file with YAML frontm
 
 ### reviewer
 - **Model:** sonnet | **Color:** yellow
-- **Tools:** Read, Glob, Grep, Bash | **disallowedTools:** Edit, Write
+- **Tools:** Read, Glob, Grep, Bash | **disallowedTools:** `Edit`, `Write`
 - **Trigger:** After writing or modifying code — catches bugs, security issues, style violations
 - **Capabilities:**
   - Reads lint/tsconfig/CONTRIBUTING.md before reviewing to avoid false positives
@@ -318,7 +318,7 @@ All agents live in `~/.claude/agents/`. Each is a Markdown file with YAML frontm
 
 ### git
 - **Model:** haiku | **Color:** cyan
-- **Tools:** Read, Glob, Grep, Bash | **disallowedTools:** Edit, Write
+- **Tools:** Read, Glob, Grep, Bash | **disallowedTools:** `Edit`, `Write`
 - **Trigger:** Branch management, commits, PRs, conflict resolution, history cleanup
 - **Capabilities:**
   - Reads commit log to match message style; follows project's branch naming conventions
@@ -403,7 +403,7 @@ All agents live in `~/.claude/agents/`. Each is a Markdown file with YAML frontm
 ### doc-updater
 - **Model:** haiku | **Color:** blue
 - **Tools:** Read, Write, Edit, Bash, Grep, Glob
-- **Trigger:** Updating codemaps and documentation after code changes; runs `/update-codemaps` and `/update-docs`
+- **Trigger:** Updating codemaps and documentation after code changes; runs `/update-codemaps` and `/update-docs` commands
 - **Capabilities:**
   - Generates `docs/CODEMAPS/` structure: INDEX.md, frontend.md, backend.md, database.md, integrations.md, workers.md
   - Each codemap includes: ASCII architecture diagram, key modules table, data flow, external dependencies

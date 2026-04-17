@@ -12,15 +12,9 @@ tags: ["claude-code", "guide"]
 
 ---
 
-All layers of persistent memory in my Claude Code setup.
-
----
-
 ## Layer 1: Custom Memory System (`~/memory-system/`)
 
-### Architecture Overview
-
-A self-healing, four-component memory system built entirely in Python, running as background daemons and exposed to Claude Code via MCP.
+A self-healing, four-component system built in Python. Runs as background daemons, exposed to Claude Code via MCP.
 
 ```
 memory-system/
@@ -48,11 +42,11 @@ memory-system/
 
 **Storage backends:**
 - **Obsidian wiki** — active, evolving knowledge; markdown files; full-text searchable
-- **Pinecone vector DB** — long-term archive; semantic search; free tier (2GB); index name: `memory-system`; embedding model: `multilingual-e5-large`; chunk size: 512 tokens, 50 overlap
+- **Pinecone vector DB** — long-term archive; semantic search; free tier (2GB); index: `memory-system`; model: `multilingual-e5-large`; chunk size: 512 tokens, 50 overlap
 
-**Cost:** &lt; $0.10/month (Haiku API calls ~$0.05, Pinecone free, embeddings free via Pinecone integrated inference)
+**Cost:** < $0.10/month (Haiku API calls ~$0.05, Pinecone free, embeddings free via Pinecone integrated inference)
 
-### 8 MCP Tools Exposed
+### 8 MCP Tools
 
 All tools delegate to Python scripts via `subprocess` through a shared `_run_script()` helper.
 
@@ -67,9 +61,9 @@ All tools delegate to Python scripts via `subprocess` through a shared `_run_scr
 | `get_log` | `(last_n: int = 20) → str` | Returns last N lines from `obsidian/log.md` |
 | `list_wiki_pages` | `() → str` | Returns entire `index.mmd` — all wiki pages with summaries, confidence levels, dates |
 
-### Obsidian Vault Integration
+### Vault Integration
 
-Pinecone `config.json` watches these vault paths for auto-ingestion:
+`config.json` watches these paths for auto-ingestion:
 ```
 ~/MyVault/01-Areas/
 ~/MyVault/02-Projects/creator-roast/
@@ -82,9 +76,9 @@ Pinecone `config.json` watches these vault paths for auto-ingestion:
 
 Excluded: `Claude Sessions`, `.obsidian`
 
-The `watcher.py` daemon (watchdog) monitors these paths live — any file created or modified triggers automatic Pinecone ingestion. Deletions remove the entry from `processed.json`.
+`watcher.py` (watchdog) monitors these paths live. Any file created or modified triggers automatic Pinecone ingestion. Deletions remove the entry from `processed.json`.
 
-The wiki itself (`obsidian/wiki/`) mirrors the vault's `01-Areas/` structure, with pages for `content-writing.md`, `dev-infrastructure.md`, `marketing-growth.md`, `products.md`, and a `projects/` subdirectory.
+The wiki (`obsidian/wiki/`) mirrors the vault's `01-Areas/` structure, with pages for `content-writing.md`, `dev-infrastructure.md`, `marketing-growth.md`, `products.md`, and a `projects/` subdirectory.
 
 ### Auto-Capture Pipeline
 
@@ -110,7 +104,7 @@ Wiki rules (enforced in CLAUDE.md):
     - Every page summary in index.mmd ≤ 12 words
 ```
 
-### Install / Setup Flow
+### Setup
 
 ```bash
 # 1. Install (Python 3.11+ required)
@@ -143,7 +137,7 @@ bash start.sh
 
 **Dependencies** (`requirements.txt`): `anthropic`, `pinecone>=5.0.0`, `watchdog`, `apscheduler`, `trafilatura`, `tqdm`, `mcp[cli]`, `plyer`, `python-dotenv`, `tiktoken`, `pypdf2`, `python-docx`, `rich`
 
-### Self-Healing (7 Checks)
+### Self-Healing
 
 | Check | Auto-fixed? |
 |---|---|
@@ -159,7 +153,7 @@ bash start.sh
 
 ## Layer 2: Persistent Learned Feedback (`~/.claude/projects/-Users-<you>/memory/`)
 
-A flat directory of markdown feedback files with YAML frontmatter, indexed by `MEMORY.md`. Loaded by Claude at session start for global behavioral rules.
+Flat directory of markdown feedback files with YAML frontmatter, indexed by `MEMORY.md`. Loaded at session start for global behavioral rules.
 
 ### Index (`MEMORY.md`)
 
@@ -192,11 +186,11 @@ A flat directory of markdown feedback files with YAML frontmatter, indexed by `M
 
 ## Layer 3: claude-mem Plugin (`mcp__plugin_claude-mem_mcp-search__`)
 
-A session-context database that auto-indexes past Claude Code conversation history. Provided by the `claude-mem@thedotmack` plugin.
+Session-context database that auto-indexes past Claude Code conversation history. Provided by the `claude-mem@thedotmack` plugin.
 
 ### 6 Tools
 
-The plugin enforces a **3-layer retrieval workflow** to minimize token cost:
+The plugin enforces a **3-step retrieval workflow** to minimize token cost:
 
 ```
 Step 1: search(query)      → Index with IDs (~50-100 tokens/result)
@@ -223,33 +217,32 @@ NEVER fetch full details without filtering first. 10x token savings.
 
 ### Token Economics
 
-The 3-step funnel is the core value proposition:
-- `search` returns ~50-100 tokens per result (IDs + summaries)
-- `timeline` adds ~200-400 tokens of surrounding context
-- `get_observations` costs ~500-2000 tokens per full observation
+- `search` — ~50–100 tokens per result (IDs + summaries)
+- `timeline` — ~200–400 tokens of surrounding context
+- `get_observations` — ~500–2,000 tokens per full observation
 
-**Without filtering:** reading 10 observations blindly = ~15,000 tokens
-**With 3-step funnel:** same information for ~1,500 tokens = **10x savings**
+**Without filtering:** 10 observations = ~15,000 tokens
+**With the 3-step funnel:** ~1,500 tokens — 10x savings.
 
 ### Auto-Indexing
 
-`claude-mem` automatically indexes Claude Code session JSONL files from `~/.claude/projects/`. No manual step required — it runs as a background MCP server process. Past sessions become searchable within seconds of the session ending.
+`claude-mem` automatically indexes Claude Code session JSONL files from `~/.claude/projects/`. No manual step required. Past sessions become searchable within seconds of the session ending.
 
 ---
 
 ## Layer 4: Session Handoffs
 
-### Two Storage Locations
+### Storage
 
 | Location | Count | Format |
 |---|---|---|
 | `~/MyVault/02-Projects/Claude Sessions/` | 142 files | Named `{date}-{topic-slug}.md` |
 | `~/.claude/session-handoffs/` | 0 (empty — vault is the active store) | — |
 
-### `auto-session-save.sh` — Stop Hook Integration
+### `auto-session-save.sh`
 
 **Location:** `~/.claude/scripts/auto-session-save.sh`
-**Trigger:** Claude Code `Stop` hook (fires when a session ends)
+**Trigger:** Claude Code `Stop` hook
 
 **How it works:**
 1. Receives session JSON on stdin, extracts `session_id`
@@ -258,9 +251,9 @@ The 3-step funnel is the core value proposition:
    - **User goals** — first 8 unique user messages > 10 chars (non-XML)
    - **Files changed** — all `Edit` and `Write` tool calls' `file_path` values
    - **Key decisions** — first meaningful line of each assistant text block > 30 chars
-4. Derives a topic slug from first 5 words of first user message
+4. Derives a topic slug from the first 5 words of the first user message
 5. Writes `~/MyVault/02-Projects/Claude Sessions/{date}-{topic-slug}.md`
-6. Deduplicates — won't overwrite if `session_id` already present in an existing file
+6. Deduplicates — won't overwrite if `session_id` already exists in a file
 
 **Output format:**
 ```markdown
@@ -296,4 +289,4 @@ _Auto-generated by auto-session-save.sh on Stop hook._
 
 ### Handoff File Usage
 
-The 142 session files in `~/MyVault/02-Projects/Claude Sessions/` serve as a searchable project history. The vault's `obsidian.md` rules direct Claude to search this directory via `ctx_search` when the user references past decisions or meetings. The `/resume` skill loads recent handoffs to reconstruct session context at the start of a new conversation.
+The 142 session files in `~/MyVault/02-Projects/Claude Sessions/` are a searchable project history. The vault rules direct Claude to search this directory via `ctx_search` when referencing past decisions. The `/resume` skill loads recent handoffs to reconstruct context at session start.

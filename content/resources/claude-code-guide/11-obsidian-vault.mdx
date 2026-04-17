@@ -8,7 +8,7 @@ groupSlug: "05-memory-context"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** The vault is a second brain — project docs, meeting notes, canonical business context. Claude reads the vault to know who you are and what you're working on. Structured well, it becomes shared memory between you and every session.
+> **New here?** The vault is a second brain — project docs, meeting notes, canonical business context. Claude reads it to know who you are and what you're working on. Structured well, it becomes shared memory across every session.
 
 ---
 
@@ -66,35 +66,35 @@ MyVault/
 
 ## Canonical Business Context (`01-Areas/_context/`)
 
-Load these before ANY content, copy, or marketing work. They are the single source of truth.
+Load these before any content, copy, or marketing work. Single source of truth.
 
 ### Brand Voice (`brand-voice.md`)
 
 **Personality:** Direct, confident, slightly provocative, conversational, educational, premium — all mixed. Sound like a smart founder talking to another smart founder.
 
-**Tone:** Polished enough to be taken seriously. Raw enough to feel real. Like a well-edited voice note — not a PR statement, not a Twitter rant.
+**Tone:** Polished enough to be taken seriously. Raw enough to feel real. A well-edited voice note, not a PR statement.
 
-**Use:** Short punchy sentences. Dry humour (occasional). Conversational but not sloppy.
+**Style:** Short, punchy sentences. Dry humour, occasional. Conversational but not sloppy.
 
-**Words to use:** "honest", "specific", "actionable", "real", "actual", "without the [noise/fluff]", short imperatives.
+**Use:** "honest", "specific", "actionable", "real", "actual", "without the [noise/fluff]", short imperatives.
 
-**Words to avoid:** "leverage", "utilize", "synergy", "game-changer", "revolutionary", "we believe", trailing qualifiers.
+**Avoid:** "leverage", "utilize", "synergy", "game-changer", "revolutionary", "we believe", trailing qualifiers.
 
-**Good example:**
+**Good:**
 > "Submit your creator profile. Get roasted. Fix what's broken."
 
-**Bad example:**
+**Bad:**
 > "We're leveraging AI to revolutionize how creators get feedback on their journey!"
 
 ---
 
 ### ICP (`icp.md`)
 
-**Who:** Indie hacker, solo founder, builder-marketer hybrid. Medium-to-high technical level. Post-MVP, has something real, doesn't know what to do with it.
+**Who:** Indie hacker, solo founder, builder-marketer hybrid. Medium-to-high technical. Post-MVP, has something real, doesn't know what to do with it.
 
-**Goal:** Ship something that gets traction — paying users, audience, proof it's not a waste of time.
+**Goal:** Ship something that gets traction — paying users, audience, proof it's not wasted time.
 
-**Top pain points:**
+**Pain points:**
 1. Can't market their product — good at building, bad at positioning
 2. Wasting time on manual tasks that should be automated
 3. No honest signal on quality — friends say "looks great", strangers say nothing
@@ -110,9 +110,9 @@ Load these before ANY content, copy, or marketing work. They are the single sour
 
 **One-liner:** Tools that give indie founders honest, actionable clarity — no fluff, no polite noise, no wasted time.
 
-**Category:** Honest feedback + automation tools for solo founders. At the intersection of "things that tell you the truth" and "things that run without you."
+**Category:** Honest feedback + automation for solo founders. "Things that tell you the truth" meets "things that run without you."
 
-**Core differentiator:** Honesty + specificity. The market tells founders what they want to hear. The positioning: tell them what's actually wrong, with enough specificity to act on immediately.
+**Core differentiator:** Honesty + specificity. The market tells founders what they want to hear. I tell them what's actually wrong — with enough specificity to act on immediately.
 
 | Product | Positioning Angle |
 |---|---|
@@ -179,7 +179,7 @@ Load these before ANY content, copy, or marketing work. They are the single sour
 
 ## Knowledge Capture Flow
 
-Fully automatic — zero manual effort required.
+Fully automatic.
 
 ```
 Session ends
@@ -248,7 +248,7 @@ Reads `CLAUDE.md` + latest session handoff + active project indexes. Returns pre
 
 ---
 
-## Tool Routing — Critical Rule
+## Tool Routing
 
 | Task | Use | Never Use |
 |---|---|---|
@@ -257,14 +257,14 @@ Reads `CLAUDE.md` + latest session handoff + active project indexes. Returns pre
 | Map vault structure | `ctx_tree("~/MyVault", depth)` | `ls` / `find` |
 | List area/project files | `ctx_tree("~/MyVault/01-Areas", 2)` | `mcp__obsidian__` |
 
-**Why:** lean-ctx reads the same markdown files faster, with session caching and token compression. `mcp__obsidian__` is never used — lean-ctx is the mandatory tool for all vault access.
+lean-ctx reads the same markdown files with session caching and token compression. `mcp__obsidian__` is never used.
 
 ---
 
-## Context Loading Order (Before Any Project Work)
+## Context Loading Order
 
 1. Check project `CLAUDE.md` for `@path` imports — if present, context is already loaded
-2. If not, `ctx_search` for the project/product name to find relevant notes
+2. If not, `ctx_search` for the project name to find relevant notes
 3. Load `01-Areas/_context/` canonical docs (brand voice, ICP, positioning, products)
 4. Read `02-Projects/[project]/index.md` for current status
-5. Never ask the user for information that may already be in the vault — search first
+5. Never ask for information that may already be in the vault — search first

@@ -8,11 +8,11 @@ groupSlug: "03-extensions"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** MCPs are how Claude connects to the outside world: Gmail, Notion, GitHub, databases, browsers, anything with an API. Each MCP is a server that exposes "tools" Claude can call. The right set turns Claude from a code editor into a research-and-do assistant.
+> MCPs are how Claude connects to the outside world: Gmail, Notion, GitHub, databases, browsers, anything with an API. Each MCP exposes tools Claude can call. The right set turns Claude from a code editor into a research-and-do assistant.
 
 ---
 
-This section documents every MCP server connected to Claude Code, including tool lists, invocation patterns, auth requirements, and setup details.
+Every MCP server connected to Claude Code — tool lists, invocation patterns, auth requirements, and setup details.
 
 ---
 
@@ -63,7 +63,7 @@ Claude Code loads MCP servers from two places:
 }
 ```
 
-**What it does:** A self-healing, autonomous knowledge system combining an Obsidian-style wiki with Pinecone vector search. Automatically ingests URLs and files, maintains a structured wiki, runs health checks, and exposes all functionality as MCP tools to Claude Code.
+**What it does:** A self-healing knowledge system combining an Obsidian-style wiki with Pinecone vector search. Automatically ingests URLs and files, maintains a structured wiki, runs health checks, and exposes everything as MCP tools to Claude Code.
 
 ### Tool List
 
@@ -168,7 +168,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default (cloud)  
 **Prefix:** `mcp__apify__`
 
-**What it does:** World's largest marketplace of web scraping and automation Actors. Extracts structured data from social media, e-commerce, search engines, maps, and travel sites.
+**What it does:** Web scraping and automation marketplace. Extracts structured data from social media, e-commerce, search engines, maps, and travel sites.
 
 ### Tool List
 
@@ -200,7 +200,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default (desktop automation)  
 **Prefix:** `mcp__computer-use__`
 
-**What it does:** Full desktop control — screenshots, mouse clicks, keyboard input, scrolling, clipboard, and application management. Tiered access by app category.
+**What it does:** Full desktop control — screenshots, mouse clicks, keyboard input, scrolling, clipboard, application management. Tiered access by app category.
 
 ### Tool List
 
@@ -238,7 +238,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Plugin-bundled (`context7@claude-plugins-official`)  
 **Prefix:** `mcp__context7__`
 
-**What it does:** Fetches current, up-to-date documentation for any library, framework, SDK, API, or CLI tool directly into Claude's context. Prevents using stale training data for library syntax.
+**What it does:** Fetches current documentation for any library, framework, SDK, API, or CLI tool directly into context. Prevents stale training data from corrupting library syntax.
 
 ### Tool List
 
@@ -253,9 +253,9 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 2. mcp__context7__query-docs          → fetch relevant docs
 ```
 
-**When to use:** Before writing code for ANY library/framework (React, Next.js, Prisma, Express, Tailwind, Django, etc.). Mandatory even for well-known libraries — training data may be stale.
+**When to use:** Before writing code for any library or framework — React, Next.js, Prisma, Express, Tailwind, Django, etc. Mandatory even for well-known ones; training data goes stale.
 
-**When NOT to use:** Refactoring, writing scripts from scratch, debugging business logic, code review, general programming concepts.
+**When NOT to use:** Refactoring, scripts from scratch, debugging business logic, code review, general programming concepts.
 
 ---
 
@@ -264,7 +264,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default (context engineering layer)  
 **Prefix:** `mcp__lean-ctx__`
 
-**What it does:** A context engineering layer that replaces native file/shell/search tools with token-compressed equivalents. Provides session caching, 8 compression modes, pattern-based output compression, and multi-agent coordination tools.
+**What it does:** A context engineering layer that replaces native file/shell/search tools with token-compressed equivalents. Session caching, 8 compression modes, pattern-based output compression, multi-agent coordination.
 
 ### Core Tool List (primary tools)
 
@@ -305,7 +305,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 | `ctx_benchmark` | Compression benchmark |
 | `ctx_metrics` | Context usage metrics |
 
-**Note:** lean-ctx replaces READ operations only. Native Edit/Write/StrReplace tools remain unchanged for file editing.
+**Note:** lean-ctx replaces read operations only. Native Edit/Write/StrReplace tools are unchanged.
 
 ---
 
@@ -314,7 +314,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Plugin-bundled / mcpjson (`enabledMcpjsonServers`)  
 **Prefix:** `mcp__notion__`
 
-**What it does:** Full Notion workspace access — read/write pages and databases, search, create, update, manage comments, teams, and users. Primary task log and knowledge base.
+**What it does:** Full Notion workspace access — read/write pages and databases, search, create, update, manage comments, teams, and users. Primary task log and knowledge base for me.
 
 ### Tool List
 
@@ -344,7 +344,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default (browser automation)  
 **Prefix:** `mcp__playwright__`
 
-**What it does:** Full browser automation for web apps. Used for E2E testing, form filling, screenshots, network inspection, and browser-based interactions when no dedicated MCP exists.
+**What it does:** Full browser automation. E2E testing, form filling, screenshots, network inspection — reach for this when no dedicated MCP exists for the target site.
 
 ### Tool List
 
@@ -379,7 +379,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Plugin-bundled (`figma@claude-plugins-official`), also in `enabledMcpjsonServers`  
 **Prefix:** `mcp__plugin_figma_figma__`
 
-**What it does:** Access Figma design files, extract design data, download assets, and bridge design-to-code workflows.
+**What it does:** Access Figma design files, extract design data, download assets, bridge design-to-code workflows.
 
 ### Tool List
 
@@ -399,7 +399,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Plugin-bundled (`slack@claude-plugins-official`)  
 **Prefix:** `mcp__plugin_slack_slack__`
 
-**What it does:** Slack workspace access for messaging, channel management, and communication workflows.
+**What it does:** Slack workspace access — messaging, channel management, communication workflows.
 
 ### Tool List
 
@@ -419,7 +419,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Plugin-bundled (from `installed_plugins.json`)  
 **Prefix:** `mcp__plugin_vercel_vercel__`
 
-**What it does:** Vercel platform management — deployments, environment variables, build logs, domain config, serverless functions, and storage.
+**What it does:** Vercel platform management — deployments, environment variables, build logs, domain config, serverless functions, storage.
 
 ### Tool List
 
@@ -439,7 +439,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Plugin-bundled (`claude-mem@thedotmack`)  
 **Prefix:** `mcp__plugin_claude-mem_mcp-search__`
 
-**What it does:** Searches the Claude session context database, enabling cross-session memory recall. Provides smart semantic search over past Claude interactions.
+**What it does:** Searches the Claude session context database for cross-session memory recall. Smart semantic search over past interactions.
 
 ### Tool List
 
@@ -453,7 +453,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 | `timeline` | View chronological timeline of events/changes |
 | `__IMPORTANT` | System-level tool (internal) |
 
-**Routing rule:** Use `smart_search` for general queries. Use when prior session context is needed (triggered by `claude-mem:mem-search` skill).
+**Routing:** Use `smart_search` for general queries. Triggered by the `claude-mem:mem-search` skill when prior session context is needed.
 
 ---
 
@@ -462,7 +462,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default  
 **Prefix:** `mcp__canva-dev__`
 
-**What it does:** Canva Apps SDK documentation and development tools for building Canva applications, UI kit components, and Connect integrations.
+**What it does:** Canva Apps SDK documentation and development tools — Canva apps, UI kit components, Connect integrations.
 
 ### Tool List
 
@@ -487,7 +487,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default  
 **Prefix:** `mcp__markdownify__`
 
-**What it does:** Converts various content formats to Markdown — web pages, PDFs, Office documents, images, audio, YouTube videos, and Git repos.
+**What it does:** Converts web pages, PDFs, Office documents, images, audio, YouTube videos, and Git repos to Markdown.
 
 ### Tool List
 
@@ -512,7 +512,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default  
 **Prefix:** `mcp__tavily__`
 
-**What it does:** AI-optimized web search and research — real-time search, deep research, web crawling, URL extraction, and site mapping.
+**What it does:** AI-optimized web search — real-time search, deep research, crawling, URL extraction, site mapping.
 
 ### Tool List
 
@@ -534,7 +534,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default  
 **Prefix:** `mcp__magic__`
 
-**What it does:** AI-powered UI component generation, inspiration, and refinement using 21st.dev's component library. Builds production-ready React/Next.js components.
+**What it does:** AI-powered UI component generation using 21st.dev's component library. Production-ready React/Next.js components.
 
 ### Tool List
 
@@ -545,7 +545,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 | `21st_magic_component_refiner` | Refine or improve an existing component |
 | `logo_search` | Search for brand logos |
 
-**When to use:** Building new UI components from scratch. Check shadcn/ui first, then Magic UI (`npx magicui-cli@latest add`), then use this for custom builds.
+**When to use:** Building new UI components. Check shadcn/ui first, then Magic UI (`npx magicui-cli@latest add`), then fall back here for custom builds.
 
 ---
 
@@ -554,7 +554,7 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 **Type:** Platform default  
 **Prefix:** `mcp__peekaboo__`
 
-**What it does:** Screenshot capture and visual analysis of the current macOS screen. Lighter weight than computer-use for read-only screen inspection.
+**What it does:** Screenshot capture and visual analysis of the current macOS screen. Lighter than `mcp__computer-use__` for read-only inspection.
 
 ### Tool List
 
@@ -564,13 +564,13 @@ tqdm, mcp[cli], plyer, python-dotenv, tiktoken, pypdf2, python-docx, rich
 | `analyze` | Analyze a captured screenshot with vision AI |
 | `list` | List available screens/displays |
 
-**When to use:** When you need to see the current screen state but don't need to interact with it. Use before asserting about app state.
+**When to use:** Need to see screen state without interacting. Use before asserting about app state.
 
 ---
 
 ## Plugin-Bundled MCPs (Auth Required)
 
-These MCPs are installed via plugins but require OAuth authentication before their full tool sets are available:
+Installed via plugins, but require OAuth before their full tool sets are available:
 
 | Plugin | MCP Prefix | Auth Tools | Full Skills Available |
 |---|---|---|---|

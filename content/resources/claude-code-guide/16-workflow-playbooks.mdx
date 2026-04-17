@@ -8,17 +8,17 @@ groupSlug: "06-advanced"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** The payoff section. Every piece from the earlier pages wired into real end-to-end workflows: spec → plan → build → verify → ship, content research, PR review, session handoff.
+> Every piece from earlier sections wired into real end-to-end workflows: spec → plan → build → verify → ship, content research, PR review, session handoff.
 
 ---
 
-Previous sections document individual components. This section shows how agents, skills, MCPs, commands, and hooks chain together into repeatable end-to-end workflows.
+Earlier sections cover individual components. This section shows how agents, skills, MCPs, commands, and hooks chain together into repeatable end-to-end workflows.
 
 ---
 
 ## Playbook 1: Daily Session Ritual
 
-**Purpose:** Start every work session with full context, work with guardrails, and close with persistent memory so the next session starts exactly where this one ended.
+**Purpose:** Start every session with full context, work with guardrails, and close with persistent memory so the next session picks up exactly where this one ended.
 
 **Trigger:** Start of any Claude Code session; `/resume` (or "what were we working on")
 
@@ -55,19 +55,19 @@ Previous sections document individual components. This section shows how agents,
   → handoff also appears in MyVault/02-Projects/Claude Sessions/
 ```
 
-**Expected outputs:** Status report on start. Handoff note + updated vault CLAUDE.md on end. Session file in `~/.claude/session-data/`.
+**Expected outputs:** Status report on start. Handoff note + updated vault `CLAUDE.md` on end. Session file in `~/.claude/session-data/`.
 
 **Gotchas:**
-- `/resume` uses `mcp__obsidian__` tools to read vault — do NOT use native Read on vault files.
-- Stop hook runs `auto-session-save.sh` automatically; `/wrap-up` is a richer manual version that also updates the backlog.
-- If resuming mid-session from a file: `/resume-session [path]` loads `~/.claude/session-data/` files, not vault handoffs — these are two distinct systems.
+- `/resume` uses `mcp__obsidian__` to read the vault — do NOT use native Read on vault files.
+- The stop hook runs `auto-session-save.sh` automatically; `/wrap-up` is the richer manual version that also updates the backlog.
+- `/resume-session [path]` loads `~/.claude/session-data/` files, not vault handoffs — these are two distinct systems.
 - Context budget warning fires after 20+ exchanges; run `/compact` before switching to an unrelated task.
 
 ---
 
 ## Playbook 2: New Feature Development (Plan → Execute → Verify)
 
-**Purpose:** Implement a feature correctly from requirements through production.
+**Purpose:** Implement a feature from requirements through production.
 
 **Trigger:** "Build [feature]", "Add [X] to the app", "Implement [Y]"
 
@@ -119,16 +119,16 @@ Previous sections document individual components. This section shows how agents,
 **Expected outputs:** Plan file at `.claude/plan/feature.md`, implemented code, passing tests, code review report, verification checklist.
 
 **Gotchas:**
-- Always call `context7` before writing code for any known library — training data may be stale.
-- `frontend-design` skill auto-triggers on new UI pages; design DNA rules (no gradient backgrounds, no Inter/Arial, physics-based easing) apply to all .tsx writes via hook.
-- Multi-file tasks: use orchestrator, not inline Claude, to prevent context overload.
-- `/orchestrate` uses structured handoff docs between agents; do not skip this for security-sensitive features.
+- Call `context7` before writing code for any known library — training data may be stale.
+- `frontend-design` auto-triggers on new UI pages; design DNA rules (no gradient backgrounds, no Inter/Arial, physics-based easing) apply to all `.tsx` writes via hook.
+- Multi-file tasks: use orchestrator, not inline Claude — prevents context overload.
+- `/orchestrate` uses structured handoff docs between agents; don't skip this for security-sensitive features.
 
 ---
 
 ## Playbook 3: Bug Fixing Workflow
 
-**Purpose:** Find and fix bugs without guessing. Iron Law: no fix without root cause.
+**Purpose:** Find and fix bugs without guessing. No fix without a root cause.
 
 **Trigger:** "Fix this bug", "Why is X broken", "Debug this error", `/investigate`
 
@@ -170,10 +170,10 @@ Previous sections document individual components. This section shows how agents,
 **Expected outputs:** Root cause identified, fix applied, regression test written, verification report.
 
 **Gotchas:**
-- Never apply a fix you cannot verify — "this should fix it" is not acceptable output.
-- `freeze` skill + scope lock prevents scope creep; run `/unfreeze` after debugging.
-- If bug is non-obvious after reading error, fire `superpowers:systematic-debugging` before touching code.
-- 3+ failed attempts = architectural issue, not a code bug; escalate.
+- Never apply a fix you cannot verify — "this should fix it" is not acceptable.
+- `freeze` + scope lock prevents creep; run `/unfreeze` after debugging.
+- Non-obvious bug after reading the error? Fire `superpowers:systematic-debugging` before touching code.
+- 3+ failed attempts = architectural issue, not a code bug. Escalate.
 
 ---
 
@@ -226,15 +226,15 @@ State files: /tmp/carousel-analysis-[date].json → /tmp/carousel-ideas-selected
 **Delivery flow:** Comment keyword → ManyChat DM → email collect → Zapier → Beehiiv → welcome email.
 
 **Gotchas:**
-- Playwright MCP required for browser automation in carousel-analysis and carousel-creator.
-- Instagram cold DMs are blocked by ToS; ManyChat comment-to-DM is the only valid outreach path.
-- Visual DNA design system is hardcoded: do not change colors/style without updating the skill.
+- Playwright MCP required for browser automation in `carousel-analysis` and `carousel-creator`.
+- Instagram cold DMs are blocked by ToS. ManyChat comment-to-DM is the only valid outreach path.
+- Visual DNA is hardcoded — don't change colors or style without updating the skill.
 
 ---
 
 ## Playbook 5: Lead Generation Pipeline
 
-**Purpose:** Scrape, classify, enrich, and push business leads to Google Sheets for outreach campaigns.
+**Purpose:** Scrape, classify, enrich, and push leads to Google Sheets for outreach campaigns.
 
 **Trigger:** "Find leads", "Scrape businesses in [location]", `/scrape-leads`, `/run-pipeline`
 
@@ -265,16 +265,16 @@ enrich_emails.py  → AnyMailFinder email enrichment on sheet
 **Expected outputs:** Google Sheet with classified + email-enriched leads. Instantly campaign with leads loaded.
 
 **Gotchas:**
-- Apify API token + Google credentials + AnyMailFinder key + Anthropic key all required in `.env`.
-- Instagram DM outreach is ToS-blocked; pipeline targets email outreach via Instantly.
-- `/run-pipeline` runs from a specific project directory (`~/Projects/lead-pipeline`); it is not a global command.
-- Large scrapes: always test 25 items first. &lt; 80% industry match = stop and refine keywords.
+- Apify API token, Google credentials, AnyMailFinder key, and Anthropic key all required in `.env`.
+- Instagram DM outreach is ToS-blocked — pipeline targets email outreach via Instantly.
+- `/run-pipeline` runs from a specific project directory (`~/Projects/lead-pipeline`) — not a global command.
+- Always test with 25 items first. Below 80% industry match: stop and refine keywords.
 
 ---
 
 ## Playbook 6: Ad Creative Intelligence Pipeline
 
-**Purpose:** Extract competitor ads, analyze strategy and creatives, map funnels, generate intelligence report.
+**Purpose:** Extract competitor ads, analyze strategy and creatives, map funnels, and generate an intelligence report.
 
 **Trigger:** "Analyze [competitor]'s ads", `/ads-analyst [competitor]`
 
@@ -315,16 +315,16 @@ enrich_emails.py  → AnyMailFinder email enrichment on sheet
 **Expected outputs:** Full intelligence package zipped and delivered via Telegram or saved locally.
 
 **Gotchas:**
-- Gemini API key required for video ad analysis (`GEMINI_API_KEY`). Image ads fall back to Claude vision.
-- Playwright/browser MCP must be connected — Meta Ad Library is a dynamic SPA.
-- Run `/ads-analyst install` first to verify all 4 sub-skills, browser automation, and API keys.
-- Never run `/ads-analyst` without checking sub-skill installation; missing DOM selectors cause silent failures.
+- `GEMINI_API_KEY` required for video ad analysis. Image ads fall back to Claude vision.
+- Playwright MCP must be connected — Meta Ad Library is a dynamic SPA.
+- Run `/ads-analyst install` first to verify sub-skills, browser automation, and API keys.
+- Missing DOM selectors cause silent failures — always check installation before running.
 
 ---
 
 ## Playbook 7: Product Launch Pipeline
 
-**Purpose:** From zero to a launched product with strategy, pricing, and conversion-optimized landing page.
+**Purpose:** From zero to a launched product — strategy, pricing, and a conversion-optimized landing page.
 
 **Trigger:** "Launch [product]", "Build landing page for [X]", "Plan the launch"
 
@@ -366,14 +366,14 @@ enrich_emails.py  → AnyMailFinder email enrichment on sheet
 **Expected outputs:** Strategy doc, pricing deck, live landing page, CRO recommendations, pre-ship report.
 
 **Gotchas:**
-- `frontend-design` skill fires automatically on new pages — check design preferences at `~/.claude/projects/-Users-<you>/memory/design_preferences.md` first.
-- Never skip `/pre-ship` before go-live; it catches HTTPS enforcement, DB user permissions, and staging gate.
+- `frontend-design` fires automatically on new pages — check design preferences at `~/.claude/projects/-Users-<you>/memory/design_preferences.md` first.
+- Never skip `/pre-ship` before go-live — it catches HTTPS enforcement, DB permissions, and the staging gate.
 
 ---
 
 ## Playbook 8: Multi-Model Collaboration (Codex + Gemini + Claude)
 
-**Purpose:** Use Codex for backend reasoning and Gemini for frontend design, with Claude as sole code writer, to produce higher-quality implementations than single-model work.
+**Purpose:** Codex for backend reasoning, Gemini for frontend design, Claude as the sole code writer — better output than single-model work.
 
 **Trigger:** Complex feature spanning backend + frontend, "use multi-model", `/multi-plan`, `/multi-workflow`
 
@@ -417,22 +417,22 @@ enrich_emails.py  → AnyMailFinder email enrichment on sheet
 /multi-workflow [task]  — runs all 6 phases (Research → Ideation → Plan → Execute → Optimize → Review) in one command
 ```
 
-**Trust rules:** Backend logic follows Codex. Frontend design follows Gemini. Claude is the only writer.
+**Trust rules:** Backend logic follows Codex. Frontend design follows Gemini. Claude writes all code.
 
 **Expected outputs:** Plan file, implemented + refactored code, dual-model audit report.
 
 **Gotchas:**
-- External models (Codex, Gemini) have ZERO filesystem write access — they output diffs only.
-- Background tasks require `timeout: 600000` — default 30s will cause premature timeout.
-- If waiting times out, use AskUserQuestion — NEVER kill the background process directly.
-- `/multi-plan` ends at plan delivery; it does NOT auto-execute. User must explicitly run `/multi-execute`.
-- `codeagent-wrapper` must be at `~/.claude/bin/`; verify before using multi-model commands.
+- Codex and Gemini have zero filesystem write access — they output diffs only.
+- Background tasks require `timeout: 600000` — the default 30s causes premature timeout.
+- If a wait times out, use `AskUserQuestion` — never kill the background process directly.
+- `/multi-plan` ends at plan delivery; it does not auto-execute. Run `/multi-execute` explicitly.
+- `codeagent-wrapper` must be at `~/.claude/bin/` — verify before using multi-model commands.
 
 ---
 
 ## Playbook 9: Weekly Retrospective
 
-**Purpose:** Review what shipped, analyze work patterns, audit setup health, and maintain skill portfolio quality.
+**Purpose:** Review what shipped, analyze work patterns, audit setup health, and maintain skill quality.
 
 **Trigger:** End of week/sprint, "weekly retro", `/retro`
 
@@ -472,15 +472,15 @@ Session End Protocol (after retro):
 **Expected outputs:** Retro report, harness scorecard with file-level actions, skill health dashboard.
 
 **Gotchas:**
-- `/harness-audit` requires `node scripts/harness-audit.js` to exist in the project; it is not a global script.
-- Do not rescore manually — use script output only (rubric version: 2026-03-16).
+- `/harness-audit` requires `node scripts/harness-audit.js` in the project — not a global script.
+- Don't rescore manually — use script output only (rubric version: 2026-03-16).
 - `/skill-health --json` for machine-readable output; pipe to automation.
 
 ---
 
 ## Playbook 10: Deploy / Ship
 
-**Purpose:** Merge branch, run all quality gates, bump version, create PR, and deploy to production.
+**Purpose:** Merge branch, run quality gates, bump version, create PR, and deploy to production.
 
 **Trigger:** "Ship this", "Deploy", "Push to main", "Create a PR", `/ship`
 
@@ -526,11 +526,11 @@ Session End Protocol (after retro):
 **Expected outputs:** Merged PR URL, deployment confirmation, canary monitoring active.
 
 **Gotchas:**
-- NEVER add `Co-Authored-By: Claude` in commit messages — this breaks Vercel Hobby plan deploys.
+- Never add `Co-Authored-By: Claude` in commit messages — it breaks Vercel Hobby plan deploys.
 - Always `git push` after every commit; the memory feedback loop depends on remote state.
-- `/ship` is fully non-interactive — it will run straight through. Use `/pre-ship` first if uncertain.
-- Design DNA hook fires on any .tsx write during the ship process; if it errors, it blocks the commit — fix the hook before shipping.
-- Vercel Hobby: one deployment at a time. Parallel deploys will queue.
+- `/ship` is non-interactive — it runs straight through. Use `/pre-ship` first if uncertain.
+- Design DNA hook fires on any `.tsx` write during ship; if it errors, it blocks the commit — fix the hook before shipping.
+- Vercel Hobby: one deployment at a time. Parallel deploys queue.
 
 ---
 

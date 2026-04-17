@@ -8,11 +8,11 @@ groupSlug: "02-configuration"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** When `CLAUDE.md` gets long, split it. The `rules/` directory holds small domain-specific files — database rules, git rules, UI rules — that you `@import` where needed. Main file stays scannable; context loads only when it matters.
+> When `CLAUDE.md` gets long, split it. The `rules/` directory holds small domain-specific files — database rules, git rules, UI rules — that you `@import` where needed. Main file stays scannable; context loads only when it matters.
 
 ---
 
-This directory contains modular rule files loaded on-demand or referenced by the global `CLAUDE.md`. Each file governs a specific domain of Claude's behavior.
+Modular rule files, loaded on-demand or referenced by the global `CLAUDE.md`. Each file governs a specific domain.
 
 ---
 
@@ -44,7 +44,7 @@ This directory contains modular rule files loaded on-demand or referenced by the
 
 ## 2. `design-dna.md` — Frontend Design Rules
 
-Every frontend output must follow these rules. They override defaults from any design skill (including `frontend-design`).
+Overrides defaults from any design skill, including `frontend-design`.
 
 ### Aesthetic
 Clean, polished, modern SaaS. Apple-level attention to detail. Liquid glass / glassmorphism where appropriate. Every pixel intentional.
@@ -67,10 +67,8 @@ Clean, polished, modern SaaS. Apple-level attention to detail. Liquid glass / gl
 - Restrained color: neutral dominant + 1-2 accents
 - Micro-details: consistent border-radius, icon sizing, spacing rhythm
 
-### Self-Improving Mechanism
-When user gives design feedback, update `~/.claude/projects/-Users-<you>/memory/design_preferences.md`.
-
-Also check `~/.claude/projects/-Users-<you>/memory/design_preferences.md` for accumulated preferences from past sessions.
+### Self-Improving
+On design feedback, update `~/.claude/projects/-Users-<you>/memory/design_preferences.md`. Check it at session start for accumulated preferences.
 
 ---
 
@@ -123,7 +121,7 @@ Also check `~/.claude/projects/-Users-<you>/memory/design_preferences.md` for ac
 
 **Vault path:** `~/MyVault/`
 
-Use lean-ctx tools directly on the vault — NOT `mcp__obsidian__` tools.
+Use lean-ctx tools directly on the vault — not `mcp__obsidian__`.
 
 ### Tool Routing
 
@@ -134,18 +132,18 @@ Use lean-ctx tools directly on the vault — NOT `mcp__obsidian__` tools.
 | Map vault structure | `ctx_tree("~/MyVault", depth)` |
 | List area or project files | `ctx_tree("~/MyVault/01-Areas", 2)` |
 
-Never use `mcp__obsidian__` — lean-ctx reads the same markdown files faster and with compression.
+lean-ctx reads the same markdown files faster and with compression.
 
 ### Context Loading Order
 
-Before starting work on any project or task:
+Before starting any project work:
 
-1. Check if the project's `CLAUDE.md` already has `@path` imports — if so, context is loaded.
-2. If not, run `ctx_search` for the project/product name to find relevant notes.
-3. Check `01-Areas/_context/` for canonical business docs (brand voice, ICP, positioning).
-4. Read `02-Projects/[project]/index.md` for current project status.
+1. Check if the project's `CLAUDE.md` has `@path` imports — if so, context is already loaded.
+2. Otherwise, `ctx_search` for the project name to find relevant notes.
+3. Check `01-Areas/_context/` for canonical business docs.
+4. Read `02-Projects/[project]/index.md` for current status.
 
-**Never ask the user for information that may already be in the vault — search first.**
+**Never ask the user for something that may already be in the vault — search first.**
 
 ### When to Search the Vault
 
@@ -157,7 +155,7 @@ Before starting work on any project or task:
 
 ### `_context/` — Canonical Business Docs
 
-`01-Areas/_context/` contains the single source of truth for all business context. Load before content, copy, or marketing work.
+`01-Areas/_context/` is the single source of truth for all business context. Load it before content, copy, or marketing work.
 
 | File | Contents |
 |---|---|
@@ -201,17 +199,16 @@ MyVault/
 
 ## 5. `ollama-delegate.md` — Ollama Delegation
 
-Automatically delegate bulk/repetitive code generation to Ollama to save Claude tokens. No user prompt needed — just do it.
+Delegate bulk/repetitive code generation to Ollama automatically. No user prompt needed.
 
-### When to Delegate (automatic)
-- Generating boilerplate (components, CRUD, type definitions)
-- Writing unit tests / test stubs
+### When to Delegate
+- Boilerplate (components, CRUD, type definitions)
+- Unit tests / test stubs
 - Simple utility functions
 - Documentation / comments
-- Any task where Claude is just producing code without needing project-wide context
 
 ### When NOT to Delegate
-- Architecture decisions, complex debugging, multi-file refactors
+- Architecture, complex debugging, multi-file refactors
 - Anything requiring skills, MCPs, or deep codebase understanding
 - Security-sensitive code
 
@@ -262,8 +259,8 @@ fi
 | **GCP Ollama (fallback)** | `qwen3.5:27b` > `gemma4:31b` | Spot instance, ~$0.28/hr |
 | **Local Ollama (last resort)** | `qwen3:8b` > `qwen3:4b` | |
 
-### Management Commands
+### Management
 
-- **Groq API key:** stored at `~/.config/groq/.env` (never commit this)
-- **GCP management:** `gcp-llm start` / `gcp-llm stop` / `gcp-llm status` ($300 credits available)
-- **Auto-start GCP:** When Groq is rate-limited and GCP is not running, run `gcp-llm start` automatically. Don't ask — just start it.
+- **Groq API key:** `~/.config/groq/.env` (never commit)
+- **GCP:** `gcp-llm start` / `gcp-llm stop` / `gcp-llm status` ($300 credits)
+- **Auto-start:** When Groq is rate-limited and GCP is down, run `gcp-llm start` without asking.

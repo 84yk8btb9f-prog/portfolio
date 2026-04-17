@@ -8,15 +8,15 @@ groupSlug: "03-extensions"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** What plugins actually contain under the hood — every agent, skill, command, and hook. Use this when you've installed a plugin and want to know what it can actually do.
+> What plugins actually contain: every agent, skill, command, and hook. Use this when you've installed a plugin and need to know what it can actually do.
 
 ---
 
 ## Agent Alchemy (sequenzia) — 6 Sub-Plugins
 
-Agent Alchemy is a suite of six coordinated plugins from `sequenzia` that implement enterprise-grade development workflows using Claude Code's native Agent Teams, Task management (TaskCreate/TaskUpdate/TaskList/TaskGet), and SendMessage coordination.
+Agent Alchemy is a suite of six coordinated plugins from `sequenzia` that implement structured development workflows using Claude Code's native Agent Teams, task management (`TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet`), and `SendMessage` coordination.
 
-**Cross-plugin loading pattern:** Skills routinely load siblings via `Read ${CLAUDE_PLUGIN_ROOT}/../<other-plugin>/skills/<skill>/SKILL.md`. The full suite is designed to work as a unit.
+**Cross-plugin loading:** Skills routinely load siblings via `Read ${CLAUDE_PLUGIN_ROOT}/../<other-plugin>/skills/<skill>/SKILL.md`. The full suite is designed to work as a unit.
 
 **Settings file:** `.claude/agent-alchemy.local.md` — controls per-workflow approval behavior, cache TTLs, TDD strictness, max parallelism, and output paths.
 
@@ -35,7 +35,7 @@ Agent Alchemy is a suite of six coordinated plugins from `sequenzia` that implem
 
 **Bundled agents:** None.
 
-**Key rule:** Every skill that uses tasks or teams loads these references first. They are the authoritative source of truth for tool parameters across the entire Agent Alchemy suite.
+**Key rule:** Every skill that uses tasks or teams loads these references first. They are the authoritative source for tool parameters across the entire Agent Alchemy suite.
 
 ---
 
@@ -109,13 +109,13 @@ Agent Alchemy is a suite of six coordinated plugins from `sequenzia` that implem
 |-------|-----------|-------------|
 | `git-commit` | Yes | Guided commit workflow — stages changes, generates commit message following project conventions, confirms before committing. |
 
-**Note:** This is the smallest sub-plugin; just one skill and no bundled agents.
+**Note:** Smallest sub-plugin — one skill, no bundled agents.
 
 ---
 
 ### agent-alchemy-sdd-tools (v0.2.11) — Spec-Driven Development
 
-**Purpose:** The full SDD pipeline: spec creation → spec analysis → task decomposition → dependency inference → parallel execution.
+**Purpose:** Full SDD pipeline — spec creation, spec analysis, task decomposition, dependency inference, parallel execution.
 
 #### Skills
 
@@ -159,7 +159,7 @@ All execution state lives in `.claude/sessions/__live_session__/`:
 
 ### agent-alchemy-tdd-tools (v0.2.1) — Test-Driven Development
 
-**Purpose:** TDD pipeline that can run standalone or integrate with SDD tasks.
+**Purpose:** TDD pipeline — runs standalone or integrates with SDD tasks.
 
 #### Skills
 
@@ -206,11 +206,11 @@ tdd:
 
 **Location:** `~/.claude/plugins/cache/claude-plugins-official/hookify/7f3389d21fa9/`
 
-**Purpose:** Create and manage custom behavior hooks via simple markdown rule files — no editing `hooks.json` required.
+**Purpose:** Create and manage custom behavior hooks via markdown rule files — no `hooks.json` editing required.
 
 ### How It Works
 
-Hookify registers Python hook scripts for all 4 hook events (PreToolUse, PostToolUse, Stop, UserPromptSubmit). These scripts scan the project's `.claude/` directory for `hookify.*.local.md` files and evaluate their rules against each event.
+Hookify registers Python hook scripts for all four hook events (PreToolUse, PostToolUse, Stop, UserPromptSubmit). These scripts scan `.claude/` for `hookify.*.local.md` files and evaluate their rules against each event.
 
 **Rule files:** `.claude/hookify.{rule-name}.local.md`
 
@@ -228,9 +228,9 @@ Message to show when rule triggers.
 
 Multi-condition rules use a `conditions:` YAML array instead of `pattern:`, with `field` + `operator` + `pattern` per condition. All conditions must match.
 
-**Events:** `bash` (Bash tool), `file` (Edit/Write/MultiEdit), `stop` (agent stopping), `prompt` (user prompt submit), `all`
+**Events:** `bash` (Bash tool), `file` (Edit/Write/MultiEdit), `stop` (agent stopping), `prompt` (user prompt submit), `all`.
 
-**Actions:** `warn` (show message, allow operation) or `block` (prevent execution / stop session)
+**Actions:** `warn` (show message, allow operation) or `block` (prevent execution / stop session).
 
 **No restart needed:** Rules take effect on the next tool use after file creation.
 
@@ -269,7 +269,7 @@ Returns structured findings: category, tool involved, regex pattern, context, se
 
 **Location:** `~/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/`
 
-**Purpose:** Meta-skill framework that instills disciplined workflows. Skills are loaded via the Skill tool at runtime, not statically. The `using-superpowers` skill is injected at session start.
+**Purpose:** Meta-skill framework for disciplined workflows. Skills load via the Skill tool at runtime, not statically. The `using-superpowers` skill is injected at session start.
 
 ### Skill Catalog
 
@@ -290,7 +290,7 @@ Returns structured findings: category, tool involved, regex pattern, context, se
 | `finishing-a-development-branch` | Ready to merge a feature branch | End-of-branch checklist: verification, documentation updates, changelog, PR description, cleanup. |
 | `using-git-worktrees` | Multi-branch parallel work | How to use git worktrees for parallel development: setup, switching, cleanup, avoiding conflicts. |
 
-**Note:** `writing-plans`, `executing-plans`, `subagent-driven-development`, and `dispatching-parallel-agents` are separately registered as `superpowers:write-plan`, `superpowers:execute-plan`, `superpowers:brainstorm` in the skill registry.
+**Note:** `writing-plans`, `executing-plans`, `subagent-driven-development`, and `dispatching-parallel-agents` are also registered as `superpowers:write-plan`, `superpowers:execute-plan`, and `superpowers:brainstorm` in the skill registry.
 
 ---
 
@@ -298,7 +298,7 @@ Returns structured findings: category, tool involved, regex pattern, context, se
 
 **Location:** `~/.claude/plugins/cache/thedotmack/claude-mem/10.5.5/`
 
-**Purpose:** Persistent cross-session memory database with AST-based code exploration. Stores observations, decisions, bugs fixed, and discoveries as structured data accessible across sessions.
+**Purpose:** Persistent cross-session memory database with AST-based code exploration. Stores observations, decisions, bugs, and discoveries as structured data accessible across sessions.
 
 ### MCP Tools
 
@@ -339,7 +339,7 @@ The plugin uses hooks (`hooks.json`) for automatic session context collection. T
 
 **Location:** `~/.claude/plugins/cache/context-engineering-marketplace/context-engineering/3ab8c9488989/`
 
-**Purpose:** Educational and practical reference for context engineering — the discipline of curating the optimal token set for AI agent systems.
+**Purpose:** Educational reference for context engineering — curating the optimal token set for AI agent systems.
 
 ### Skills
 
@@ -367,7 +367,7 @@ The plugin uses hooks (`hooks.json`) for automatic session context collection. T
 
 **Location:** `~/.claude/plugins/cache/claude-plugins-official/vercel/0.40.0/`
 
-**Purpose:** Comprehensive Next.js/Vercel development reference. Uses a sophisticated hook system for session start profiling, skill auto-injection on context signals, and pattern-based skill chaining.
+**Purpose:** Comprehensive Next.js/Vercel development reference. Uses a hook system for session start profiling, skill auto-injection on context signals, and pattern-based skill chaining.
 
 ### 25 Skills — Grouped by Domain
 
@@ -471,7 +471,7 @@ The Vercel plugin uses sophisticated hooks:
 
 **Location:** `~/.claude/plugins/cache/claude-plugins-official/figma/2.1.7/`
 
-**Purpose:** Full Figma design system integration — read designs, implement code, generate designs programmatically, manage design systems.
+**Purpose:** Full Figma integration — read designs, implement code, generate designs programmatically, manage design systems.
 
 ### Skills
 
@@ -504,7 +504,7 @@ The Vercel plugin uses sophisticated hooks:
 
 **Location:** `~/.claude/plugins/cache/claude-plugins-official/slack/1.0.0/`
 
-**Purpose:** Slack workspace integration for messaging, searching, and communication workflows.
+**Purpose:** Slack workspace integration — messaging, search, communication workflows.
 
 ### Skills
 
@@ -535,7 +535,7 @@ The Vercel plugin uses sophisticated hooks:
 
 **Location:** `~/.claude/plugins/cache/claude-plugins-official/telegram/0.0.6/`
 
-**Purpose:** Personal Telegram bot integration — receive and respond to Telegram DMs and group messages through Claude Code.
+**Purpose:** Personal Telegram bot integration — receive and respond to DMs and group messages through Claude Code.
 
 ### Skills / Commands
 
@@ -627,7 +627,7 @@ After PR feedback:     /pr-review-toolkit:review-pr <targeted-aspects>
 
 **Location:** `~/.claude/plugins/cache/claude-plugins-official/frontend-design/7f3389d21fa9/`
 
-**Purpose:** Auto-triggered for frontend work. Generates distinctive, production-grade UI avoiding generic AI aesthetics.
+**Purpose:** Auto-triggered for frontend work. Generates distinctive, production-grade UI — deliberately avoids generic AI aesthetics.
 
 ### Skill
 
@@ -635,7 +635,7 @@ After PR feedback:     /pr-review-toolkit:review-pr <targeted-aspects>
 |-------|---------|-------------|
 | `frontend-design:frontend-design` | Frontend UI work, new pages, major components from scratch, visual/design feedback | Bold aesthetic choices, distinctive typography and color palettes, high-impact animations, context-aware implementation. Created by Prithvi Rajasekaran and Alexander Bricken at Anthropic. Reference: [Frontend Aesthetics Cookbook](https://github.com/anthropics/claude-cookbooks/blob/main/coding/prompting_for_frontend_aesthetics.ipynb). |
 
-**Note:** This plugin's skill is overridden by my personal `design-dna.md` rules which add specific constraints: no gradient backgrounds, no emojis (use icons), no Inter/Roboto/Arial as primary, physics-based easing (spring/ease-out-expo), glassmorphism where appropriate, restrained color palette.
+**Note:** My personal `design-dna.md` rules override this skill's defaults: no gradient backgrounds, no emojis (use icons), no Inter/Roboto/Arial as primary font, physics-based easing (spring/ease-out-expo), glassmorphism where appropriate, restrained color palette.
 
 ---
 

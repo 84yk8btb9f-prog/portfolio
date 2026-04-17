@@ -8,19 +8,19 @@ groupSlug: "02-configuration"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** `settings.json` is where Claude Code gets its boundaries. What tools it can use, which commands run without asking, what's off-limits entirely. Done right, you get autonomous work on routine stuff and an automatic prompt before anything destructive.
+> `settings.json` is where Claude Code gets its boundaries. What tools it can use, which commands run without asking, what's off-limits entirely. Done right, you get autonomous work on routine stuff and a confirmation prompt before anything destructive.
 
 ---
 
-## 1. Top-Level Behaviour Settings
+## 1. Top-Level Behavior Settings
 
 | Key | Value | What it does |
 |-----|-------|--------------|
-| `defaultMode` | `"bypassPermissions"` | Claude acts without asking permission for every tool call. Permissions are still enforced by the `allow`/`ask` lists — this just bypasses the generic "do you want to allow?" runtime prompt. |
-| `skipDangerousModePermissionPrompt` | `true` | Suppresses the one-time startup warning shown when `bypassPermissions` mode is active. Lets sessions start silently. |
-| `advisorModel` | `"opus"` | The model used when the `advisor()` tool is invoked for deep-reasoning review. Currently Claude Opus. |
-| `autoUpdatesChannel` | `"latest"` | Claude Code auto-updates from the `latest` release channel (stable). |
-| `showThinkingSummaries` | `true` | Extended thinking summaries are rendered in the UI when the model produces them. |
+| `defaultMode` | `"bypassPermissions"` | Claude acts without a permission prompt on every tool call. The `allow`/`ask` lists still apply — this just removes the generic runtime confirmation. |
+| `skipDangerousModePermissionPrompt` | `true` | Suppresses the one-time startup warning when `bypassPermissions` is active. Sessions start silently. |
+| `advisorModel` | `"opus"` | Model used when `advisor()` is called for deep-reasoning review. Set to Claude Opus. |
+| `autoUpdatesChannel` | `"latest"` | Auto-updates from the stable `latest` channel. |
+| `showThinkingSummaries` | `true` | Renders extended thinking summaries in the UI. |
 
 ---
 
@@ -37,17 +37,17 @@ Defined in `settings.json` → `env`:
 
 | Variable | Value | Purpose |
 |----------|-------|---------|
-| `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | `"1"` | Disables Claude Code's built-in automatic memory/summarisation system. All memory is managed manually (via `claude-mem`, knowledge graph, or vault notes). |
-| `CLAUDE_CODE_SUBAGENT_MODEL` | `"sonnet"` | Sets the default model for spawned subagents to Sonnet. Prevents subagents from defaulting to a cheaper/slower model accidentally. |
+| `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | `"1"` | Disables built-in automatic memory/summarization. Memory is managed manually via `claude-mem`, the knowledge graph, or vault notes. |
+| `CLAUDE_CODE_SUBAGENT_MODEL` | `"sonnet"` | Sets the default model for spawned subagents to Sonnet. |
 
 ---
 
 ## 3. Permissions — `allow` Array
 
-All operations listed here are auto-approved without a runtime prompt.
+Everything here runs without a confirmation prompt.
 
 ### 3.1 Git (Read-Only & Safe)
-```
+```text
 Bash(git status)
 Bash(git status --short)
 Bash(git log*)
@@ -61,7 +61,7 @@ Bash(git blame*)
 ```
 
 ### 3.2 Git (Write Operations — Auto-Approved)
-```
+```text
 Bash(git add:*)
 Bash(git commit:*)
 Bash(git push:*)
@@ -69,7 +69,7 @@ Bash(git rm:*)
 ```
 
 ### 3.3 NPM / Node Tooling
-```
+```text
 Bash(npm run build*)
 Bash(npm run test*)
 Bash(npm run lint*)
@@ -88,7 +88,7 @@ Bash(node:*)
 ```
 
 ### 3.4 Python / pip
-```
+```text
 Bash(pip3:*)
 Bash(pip:*)
 Bash(python3:)
@@ -97,7 +97,7 @@ Bash(python:*)
 ```
 
 ### 3.5 Homebrew & System Package Management
-```
+```text
 Bash(brew upgrade:*)
 Bash(brew list:*)
 Bash(brew install:*)
@@ -105,7 +105,7 @@ Bash(nvm install:*)
 ```
 
 ### 3.6 Shell Utilities — File System
-```
+```text
 Bash(ls*)
 Bash(ls:*)
 Bash(cat *)
@@ -136,7 +136,7 @@ Bash(dirname:*)
 ```
 
 ### 3.7 Shell Utilities — Text Processing
-```
+```text
 Bash(echo *)
 Bash(grep:*)
 Bash(sed:*)
@@ -152,7 +152,7 @@ Bash(xargs:*)
 ```
 
 ### 3.8 Shell Utilities — Process / Environment
-```
+```text
 Bash(date)
 Bash(env | grep *)
 Bash(env)
@@ -165,13 +165,13 @@ Bash(ps:*)
 ```
 
 ### 3.9 Network / HTTP
-```
+```text
 Bash(curl:*)
 Bash(curl -s http://localhost:11434/*)
 ```
 
 ### 3.10 Vercel CLI
-```
+```text
 Bash(vercel --version)
 Bash(vercel whoami)
 Bash(vercel status)
@@ -181,7 +181,7 @@ Bash(vercel ls:*)
 ```
 
 ### 3.11 Railway CLI
-```
+```text
 Bash(railway --version)
 Bash(railway whoami)
 Bash(railway status*)
@@ -189,7 +189,7 @@ Bash(railway logs*)
 ```
 
 ### 3.12 Fly.io CLI
-```
+```text
 Bash(fly version)
 Bash(fly auth whoami)
 Bash(fly status*)
@@ -197,42 +197,42 @@ Bash(fly logs*)
 ```
 
 ### 3.13 Netlify CLI
-```
+```text
 Bash(netlify --version)
 Bash(netlify status)
 ```
 
 ### 3.14 Cloudflare Wrangler
-```
+```text
 Bash(wrangler --version)
 Bash(wrangler whoami)
 ```
 
 ### 3.15 GitHub CLI
-```
+```text
 Bash(gh:*)
 Bash(gh repo:*)
 ```
 
 ### 3.16 Claude Code CLI (Internal)
-```
+```text
 Bash(claude mcp:*)
 Bash(claude hooks:*)
 ```
 
 ### 3.17 Ollama (Local LLM)
-```
+```text
 Bash(ollama *)
 Bash(pkill ollama)
 ```
 
 ### 3.18 GCP-LLM (Cloud Ollama Management)
-```
+```text
 Bash(gcp-llm *)
 ```
 
 ### 3.19 MCP Tools — Notion
-```
+```text
 mcp__notion__notion-create-view
 mcp__notion__notion-create-pages
 mcp__notion__notion-update-page
@@ -241,7 +241,7 @@ mcp__notion__notion-fetch
 ```
 
 ### 3.20 MCP Tools — Playwright
-```
+```text
 mcp__playwright__browser_navigate
 mcp__playwright__browser_take_screenshot
 mcp__playwright__browser_snapshot
@@ -249,7 +249,7 @@ mcp__playwright__browser_evaluate
 ```
 
 ### 3.21 MCP Tools — Apify
-```
+```text
 mcp__apify__fetch-actor-details
 mcp__apify__search-actors
 mcp__apify__call-actor
@@ -257,7 +257,7 @@ mcp__apify__get-actor-output
 ```
 
 ### 3.22 MCP Tools — Other
-```
+```text
 mcp__supabase__apply_migration
 mcp__plugin_telegram_telegram__reply
 WebSearch
@@ -265,9 +265,9 @@ WebSearch
 
 ## 4. Permissions — `ask` Array (Destructive Operations)
 
-These operations require explicit user confirmation before execution:
+These require explicit confirmation before execution:
 
-```
+```text
 Bash(rm *)               — file deletion
 Bash(rmdir *)            — directory removal
 Bash(shred *)            — secure file deletion
@@ -289,9 +289,9 @@ Bash(mkfs*)              — format filesystem
 
 ## 5. Hooks
 
-### 5.1 Stop Hook — Task Completion Notification
+### 5.1 Stop Hook — Task Completion
 
-**Trigger:** When Claude finishes a task (session Stop event).
+Fires on the session Stop event.
 
 ```json
 {
@@ -299,13 +299,13 @@ Bash(mkfs*)              — format filesystem
   "command": "osascript -e 'display notification \"Claude has finished.\" with title \"Claude Code\" sound name \"Glass\"'"
 }
 ```
-Plays the macOS **Glass** sound and shows a system notification.
+Plays the macOS **Glass** sound.
 
 ---
 
 ### 5.2 Notification Hook — Attention Required
 
-**Trigger:** When Claude needs user input mid-task.
+Fires when Claude needs input mid-task.
 
 ```json
 {
@@ -319,7 +319,7 @@ Plays the macOS **Ping** sound.
 
 ### 5.3 StopFailure Hook — Error Notification
 
-**Trigger:** When Claude stops due to an unrecoverable error.
+Fires when Claude stops on an unrecoverable error.
 
 ```json
 {
@@ -327,13 +327,13 @@ Plays the macOS **Ping** sound.
   "command": "osascript -e 'display notification \"Claude stopped with an error.\" with title \"Claude Code\" sound name \"Basso\"'"
 }
 ```
-Plays the macOS **Basso** sound (the low-pitched error tone).
+Plays the macOS **Basso** sound.
 
 ---
 
 ### 5.4 PreToolUse Hook 1 — lean-ctx Bash Rewrite
 
-**Matcher:** `Bash|bash`
+Matcher: `Bash|bash`
 
 ```json
 {
@@ -341,13 +341,13 @@ Plays the macOS **Basso** sound (the low-pitched error tone).
   "command": "lean-ctx hook rewrite"
 }
 ```
-Before any Bash command executes, lean-ctx intercepts and rewrites it if a more token-efficient MCP equivalent exists (e.g., converting `grep` to `ctx_search`). Enforces the lean-ctx layer for shell commands.
+Intercepts any Bash call and rewrites it to a token-efficient MCP equivalent where one exists (e.g., `grep` → `ctx_search`).
 
 ---
 
 ### 5.5 PreToolUse Hook 2 — lean-ctx Read Redirect
 
-**Matcher:** `Read|read|ReadFile|read_file|View|view|Grep|grep|Search|search|ListFiles|list_files|ListDirectory|list_directory`
+Matcher: `Read|read|ReadFile|read_file|View|view|Grep|grep|Search|search|ListFiles|list_files|ListDirectory|list_directory`
 
 ```json
 {
@@ -355,7 +355,7 @@ Before any Bash command executes, lean-ctx intercepts and rewrites it if a more 
   "command": "lean-ctx hook redirect"
 }
 ```
-Before any file-read or search tool is called natively, lean-ctx redirects it to the cached, compressed `ctx_read`/`ctx_search` equivalents. This is the enforcement mechanism for the "ALWAYS use lean-ctx" rule — it's applied at the harness level, not just as a prompt instruction.
+Redirects native file-read and search calls to `ctx_read`/`ctx_search`. Enforces the lean-ctx layer at the harness level, not just in the prompt.
 
 ---
 
@@ -368,7 +368,7 @@ Before any file-read or search tool is called natively, lean-ctx redirects it to
 }
 ```
 
-A custom shell script drives the Claude Code status bar. The script at `~/.claude/statusline-command.sh` determines what is displayed in the CLI status line (likely shows model, context usage, git branch, or similar runtime info).
+A custom shell script at `~/.claude/statusline-command.sh` drives the CLI status bar — model, context usage, git branch, and similar runtime info.
 
 ---
 
@@ -404,9 +404,9 @@ A custom shell script drives the Claude Code status bar. The script at `~/.claud
 
 ### Disabled (`false`)
 
-| Plugin Key | Reason (inferred) |
-|------------|------------------|
-| `context7@claude-plugins-official` | Replaced by the direct `mcp__context7__` MCP server — the skill wrapper is redundant |
+| Plugin Key | Reason |
+|------------|--------|
+| `context7@claude-plugins-official` | Replaced by the `mcp__context7__` MCP server directly — the skill wrapper is redundant |
 
 ---
 
@@ -429,7 +429,7 @@ Custom plugin registries beyond the default Claude Code marketplace:
 
 ## 9. `settings.local.json` — Local Overrides
 
-This file adds permissions and MCP configuration specific to the local machine (not committed to any project repo).
+Permissions and MCP config specific to the local machine — not committed to any project repo.
 
 ### Extra Allowed Permissions
 
@@ -466,7 +466,7 @@ This file adds permissions and MCP configuration specific to the local machine (
 ```json
 "enableAllProjectMcpServers": true
 ```
-Automatically enables all MCP servers defined in project-level `.claude/mcp.json` files without needing individual approval.
+Enables all MCP servers defined in project-level `.claude/mcp.json` files without per-server approval.
 
 ### Enabled MCP JSON Servers
 
@@ -478,13 +478,13 @@ Automatically enables all MCP servers defined in project-level `.claude/mcp.json
   "miro"
 ]
 ```
-These four MCP servers from the system-level `mcp.json` (or Claude's default registry) are activated for local sessions.
+These four servers from the system-level `mcp.json` are activated for local sessions.
 
 ---
 
 ## 10. `mcp.json` — Custom MCP Server Definitions
 
-One custom MCP server is registered:
+One custom MCP server is defined:
 
 ### `memory-system`
 
@@ -501,20 +501,20 @@ One custom MCP server is registered:
 | Runtime | Python via local virtualenv at `~/memory-system/.venv` |
 | Entry point | `~/memory-system/mcp/memory_server.py` |
 | Working directory | `~/memory-system` |
-| Purpose | Custom memory system MCP — exposes tools like `search_pinecone`, `search_wiki`, `update_wiki_page`, `ingest_file`, `ingest_url`, `get_log`, `run_health_check` (as seen in `mcp__memory-system__*` tools in the deferred tool list) |
+| Purpose | Exposes `search_pinecone`, `search_wiki`, `update_wiki_page`, `ingest_file`, `ingest_url`, `get_log`, `run_health_check` |
 
-This is a locally-hosted MCP server running a custom Python memory backend, likely backed by Pinecone (vector search) + a wiki system.
+Locally-hosted Python server backed by Pinecone (vector search) and a wiki system.
 
 ---
 
 ## Summary
 
-| Area | Key Choices |
-|------|------------|
+| Area | Key choices |
+|------|-------------|
 | Permission model | `bypassPermissions` — Claude acts freely; destructive ops (rm, force push, DROP TABLE, dd) require confirmation |
 | Agent model | Sonnet for subagents via env var; Opus reserved for `advisor()` calls |
 | Auto-memory | Disabled — manual memory via claude-mem, knowledge graph, Obsidian vault |
-| Hooks | 3 macOS notification sounds (Glass/Ping/Basso) for Stop/Notification/StopFailure; 2 PreToolUse hooks enforcing lean-ctx at the harness level |
+| Hooks | Glass/Ping/Basso sounds for Stop/Notification/StopFailure; 2 PreToolUse hooks enforcing lean-ctx at the harness level |
 | Plugins | 23 enabled across 5 marketplaces; context7 plugin disabled (MCP used directly) |
 | Custom MCPs | 1 local Python memory-system server (Pinecone + wiki backend) |
-| Status line | Custom shell script drives the CLI status bar |
+| Status line | Custom shell script at `~/.claude/statusline-command.sh` |

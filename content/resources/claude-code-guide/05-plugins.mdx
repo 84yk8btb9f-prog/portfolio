@@ -8,7 +8,7 @@ groupSlug: "03-extensions"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** Plugins bundle agents, skills, commands, and hooks around a theme — PR review, spec-driven dev, TDD, testing. Install one and you get a whole workflow out of the box. A handful earn their weight; most need trial-and-error to see what fits your stack.
+> Plugins bundle agents, skills, commands, and hooks around a theme — PR review, spec-driven dev, TDD, testing. Install one and get a whole workflow out of the box. A handful earn their weight; most need trial-and-error to find what fits.
 
 ---
 
@@ -38,7 +38,7 @@ All plugins are installed at **user scope** (`~/.claude/plugins/cache/`). Versio
   - `writing-skills` — author new Claude Code skills
 - **Provides — Commands:** `/brainstorm`, `/write-plan`, `/execute-plan`
 - **Provides — Agents:** `code-reviewer`
-- **Note:** Most critical plugin in the setup; gates brainstorm/plan/debug/verify workflows via CLAUDE.md rules
+- **Note:** Most critical plugin in the setup. Gates brainstorm/plan/debug/verify workflows via CLAUDE.md rules.
 
 ### frontend-design
 - **Version:** unknown (SHA: d5c15b8)
@@ -57,13 +57,13 @@ All plugins are installed at **user scope** (`~/.claude/plugins/cache/`). Versio
 - **Provides — Commands:** `/hookify`, `/hookify:help`, `/hookify:list`, `/hookify:configure`
 - **Provides — Agents:** `conversation-analyzer`
 - **Provides — Hooks:** PreToolUse, PostToolUse, Stop, UserPromptSubmit hook infrastructure (Python)
-- **Note:** Hook management system — write and enforce custom behavioral rules
+- **Note:** Hook management system — write and enforce custom behavioral rules.
 
 ### context7
 - **Version:** unknown (SHA: d5c15b8)
 - **Installed:** 2026-03-15 | **Updated:** 2026-04-17
 - **Status:** DISABLED (`"context7@claude-plugins-official": false` in settings.json)
-- **Note:** Replaced by the native `mcp__context7__` MCP server
+- **Note:** Replaced by the native `mcp__context7__` MCP server.
 
 ### code-simplifier
 - **Version:** 1.0.0
@@ -166,7 +166,7 @@ All plugins are installed at **user scope** (`~/.claude/plugins/cache/`). Versio
 - **Installed:** 2026-03-28 | **Updated:** 2026-04-17
 - **Provides — Skills (5):** `create-spec`, `analyze-spec`, `create-tasks`, `run-tasks`, `execute-tasks`
 - **Provides — Agents:** `codebase-explorer`, `context-manager`, `researcher`, `spec-analyzer`, `task-executor`, `wave-lead`
-- **Note:** Full Spec-Driven Development (SDD) pipeline
+- **Note:** Full Spec-Driven Development (SDD) pipeline.
 
 ### agent-alchemy-tdd-tools
 - **Version:** 0.2.1
@@ -186,7 +186,7 @@ All plugins are installed at **user scope** (`~/.claude/plugins/cache/`). Versio
 - **Provides — MCP:** `mcp__plugin_claude-mem_mcp-search__*` — persistent memory search across sessions
 - **Provides — Modes (35):** localized code modes (ar, bn, chill, cs, de, es, fr, ja, ko, zh, etc.) + `email-investigation`, `law-study`
 - **Provides — Hooks:** session lifecycle hooks (session-start, session-end, etc.)
-- **Note:** Session memory system using SQLite + tree-sitter for code-aware memory
+- **Note:** Session memory system using SQLite + tree-sitter for code-aware memory.
 
 ---
 
@@ -211,8 +211,8 @@ All plugins are installed at **user scope** (`~/.claude/plugins/cache/`). Versio
 
 ### pdf
 - **Enabled:** true (no cache entry — loaded from marketplace directory)
-- **Provides — Skills:** `pdf` — extract, fill, and annotate PDF forms; convert PDFs to images
-- **Provides — Scripts:** `fill_pdf_form_with_annotations.py`, `convert_pdf_to_images.py`, `extract_form_structure.py`, and others
+- **Provides — Skills:** `pdf` — extract, fill, and annotate PDF forms; convert PDFs to images.
+- **Provides — Scripts:** `fill_pdf_form_with_annotations.py`, `convert_pdf_to_images.py`, `extract_form_structure.py`, and others.
 
 ---
 
@@ -232,7 +232,7 @@ All plugins are installed at **user scope** (`~/.claude/plugins/cache/`). Versio
 
 ---
 
-## Marketplaces Registered But No Plugins Installed
+## Registered Marketplaces with No Plugins Installed
 
 | Marketplace | Source Repo | Notes |
 |---|---|---|

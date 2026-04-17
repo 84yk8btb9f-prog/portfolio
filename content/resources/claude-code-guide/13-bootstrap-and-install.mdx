@@ -8,7 +8,7 @@ groupSlug: "01-fundamentals"
 tags: ["claude-code", "guide"]
 ---
 
-> **New here?** The checklist for setting up Claude Code from scratch on a new machine. Everything you need, in order, no guesswork. Copy-paste ready.
+> **New here?** The checklist for setting up Claude Code from scratch on a new machine. Everything you need, in order. Copy-paste ready.
 
 ---
 
@@ -40,7 +40,7 @@ brew install node git gh jq ollama flyctl python@3.12
 npm install -g npm@latest
 ```
 
-### uv (Python fast package manager — required for claude-memory-compiler)
+### uv (Python package manager — required for claude-memory-compiler)
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -48,7 +48,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ---
 
-## 2. Claude Code Install
+## 2. Claude Code
 
 Claude Code is installed as a global npm package.
 
@@ -65,7 +65,7 @@ which claude
 # Expected: ~/.local/bin/claude
 ```
 
-Authenticate with your Anthropic account:
+Authenticate:
 
 ```bash
 claude
@@ -95,21 +95,21 @@ which lean-ctx
 
 ### Wire lean-ctx into Claude Code
 
-Run the one-command setup:
+One-command setup:
 
 ```bash
 lean-ctx setup
 ```
 
-This installs shell aliases and wires the MCP server into your editor/agent config. To configure manually for Claude Code specifically:
+This installs shell aliases and wires the MCP server into your agent config. To configure manually for Claude Code specifically:
 
 ```bash
 lean-ctx init --agent claude-code
 ```
 
-### Hook wiring (settings.json)
+### Hook Wiring (`settings.json`)
 
-lean-ctx hooks intercept native Read and Bash tool calls and route them through lean-ctx compression. These are configured in `~/.claude/settings.json`:
+lean-ctx hooks intercept native Read and Bash tool calls and route them through lean-ctx compression. Add to `~/.claude/settings.json`:
 
 ```json
 {
@@ -143,7 +143,7 @@ lean-ctx hooks intercept native Read and Bash tool calls and route them through 
 }
 ```
 
-### Make hook shell scripts executable
+### Make hook scripts executable
 
 ```bash
 chmod +x ~/.claude/hooks/*.sh
@@ -332,7 +332,7 @@ gcp-llm status   # Check IP + status
 gcp-llm stop     # Stop (stop billing)
 ```
 
-> **FRAGILE STEP:** The `gcp-llm` script has hardcoded GCP project, zone, and instance configuration. You must edit those values before use. Examine `cat $(which gcp-llm)` to see all config variables.
+> **Fragile step:** The `gcp-llm` script has hardcoded GCP project, zone, and instance configuration. Edit those values before use. Run `cat $(which gcp-llm)` to see all config variables.
 
 ---
 
@@ -366,8 +366,6 @@ Key dependencies (from `pyproject.toml`):
 
 ### Symlink daily logs to vault
 
-The vault's `05-Daily-Logs` folder is symlinked to the compiler's output:
-
 ```bash
 rmdir ~/MyVault/05-Daily-Logs   # remove placeholder if exists
 ln -s ~/claude-memory-compiler/daily ~/MyVault/05-Daily-Logs
@@ -398,13 +396,13 @@ Vault: `~/MyVault/` — access via lean-ctx tools directly on vault path.
 
 ## 8. MCP OAuth Pairings
 
-Several MCPs require OAuth authentication. These are triggered on first use or can be pre-paired with:
+Several MCPs require OAuth authentication. Trigger on first use or pre-pair with:
 
 ```bash
 claude mcp auth <server-name>
 ```
 
-### MCPs requiring OAuth (from `mcp-needs-auth-cache.json`)
+### MCPs requiring OAuth
 
 | MCP | Auth method | Notes |
 |-----|-------------|-------|
@@ -433,13 +431,13 @@ claude plugins auth vercel
 # 3. Add to MCP config or environment
 ```
 
-> **Note:** Telegram auth is handled via `telegram configure` skill which walks through bot token setup.
+> **Note:** Telegram auth is handled via `telegram configure` skill, which walks through bot token setup.
 
 ---
 
 ## 9. Verification
 
-Run these checks to confirm each component is working:
+Run these checks to confirm each component is working.
 
 ### Claude Code
 
@@ -509,7 +507,7 @@ claude -p "say hello"
 
 ---
 
-## Fragile / Manual Steps Summary
+## Fragile / Manual Steps
 
 | Step | Why it's fragile | Mitigation |
 |------|------------------|------------|
@@ -523,7 +521,7 @@ claude -p "say hello"
 
 ---
 
-## Quick Reference — Installed Versions (as of April 2026)
+## Quick Reference — Installed Versions (April 2026)
 
 | Tool | Version | Install method |
 |------|---------|----------------|
@@ -537,4 +535,3 @@ claude -p "say hello"
 | fly | via brew | `brew install flyctl` |
 | uv | latest | curl install script |
 | gcp-llm | custom script | `~/.local/bin/gcp-llm` |
-
