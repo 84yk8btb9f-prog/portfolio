@@ -173,6 +173,34 @@ const ROOT: FolderNode = {
       preview:
         "Next.js · React · TypeScript · Tailwind CSS\nSupabase · Vercel · Figma · React Native\n\nFast, reliable, modern. I pick boring tech that ships — and then push it to its limits. Everything goes on Vercel. Everything is designed in Figma first.",
     },
+    {
+      id: "process",
+      name: "Process.md",
+      type: "file",
+      kind: "Markdown Document",
+      modified: "Apr 15, 2026",
+      preview:
+        "How a project typically goes:\n\n1. Discovery call — 20–30 min. You tell me what you need, I ask questions, we figure out scope.\n2. Proposal — I send a clear brief: what I'll build, timeline, price. No surprises.\n3. Build — I design and develop. You get progress updates. Fast iteration.\n4. Launch — I handle deployment. You get the keys.\n\nMost projects take 1–3 weeks from kickoff to live.",
+    },
+    {
+      id: "rates",
+      name: "Rates.md",
+      type: "file",
+      kind: "Markdown Document",
+      modified: "Apr 15, 2026",
+      preview:
+        "Project-based pricing. No hourly ambiguity.\n\nLanding page — from €400\nMarketing site — from €800\nFull web app (MVP) — from €1,500\nCustom ecommerce — from €1,200\nCustom system / automation — quote on scope\n\nAll projects include: design, development, deployment, and one round of revisions. Ongoing support available.",
+    },
+    {
+      id: "contact",
+      name: "Contact.md",
+      type: "file",
+      kind: "Markdown Document",
+      modified: "Apr 15, 2026",
+      url: "mailto:nikolas.sapalidis@gmail.com",
+      preview:
+        "Best way to reach me: nikolas.sapalidis@gmail.com\n\nTell me what you're building or what you need. I'll reply within 24 hours.\n\nBased in Athens, Greece. Work with clients remotely worldwide.",
+    },
   ],
 };
 
