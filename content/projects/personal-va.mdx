@@ -1,0 +1,25 @@
+---
+title: Personal VA
+date: "2026-03-01"
+description: Telegram-first personal AI assistant running on Cloudflare. Ask it anything, delegate tasks, get answers without switching contexts.
+status: live
+tags: [personal-tool, ai, telegram, cloudflare, hono]
+---
+
+## What it is
+
+A personal AI assistant accessible entirely through Telegram. Send a message and get a response from Claude — no app switching, no web UI, no login. It lives at `va.helpmarq.com` behind a Cloudflare tunnel.
+
+Security: requests are authenticated via a secret header and a chat ID allowlist, so only my Telegram account can reach it.
+
+## Why I built it
+
+I wanted an AI assistant I could reach from anywhere — phone, watch, any device with Telegram — without opening a browser or managing sessions. Telegram as the interface is frictionless.
+
+## Current status
+
+Phase 0 functional: core messaging loop live. Expanding capabilities progressively.
+
+## Stack
+
+Hono, Cloudflare Workers, Cloudflare Tunnel, Telegram Bot API, Claude API.

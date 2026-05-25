@@ -1,0 +1,27 @@
+---
+title: Grip (agentbrowser)
+date: "2026-03-15"
+description: Token-efficient, CDP-native browser SDK for AI agents. 100× fewer tokens than raw HTML — a full agent loop goes from 200K tokens to 2K.
+status: live
+tags: [open-source, ai, developer-tools, python, browser]
+---
+
+## What it is
+
+Grip is a Python library that gives AI agents a browser built directly on the Chrome DevTools Protocol (CDP) — no Playwright, no Puppeteer overhead. It converts any page into a semantic summary of interactive elements and visible text, designed specifically for agents.
+
+Install: `pip install grip-browser`
+
+## Why it matters
+
+Token cost is the #1 friction in production AI agents with browser access. Raw HTML: ~12,000 tokens per snapshot. Screenshots: ~3,000 tokens. Grip: ~50 tokens. A full agent loop that costs 200,000 tokens with raw HTML costs ~2,000 tokens with Grip — a 100× reduction in cost and latency.
+
+CDP-native means no Playwright dependency and no spawning a full browser automation framework. Grip talks directly to Chrome.
+
+## Current status
+
+Published to PyPI as `grip-browser`. Open-source, MIT license.
+
+## Stack
+
+Python, Chrome DevTools Protocol (CDP).

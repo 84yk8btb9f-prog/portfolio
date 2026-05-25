@@ -1,0 +1,31 @@
+---
+title: MCP Gateway
+date: "2026-05-10"
+description: Managed security gateway between AI agents and their MCP tools. Sanitizes responses, governs behavior, audits everything.
+status: building
+tags: [startup, ai, security, mcp, open-source]
+---
+
+## What it is
+
+MCP Gateway is a managed security layer that sits between AI agents and the MCP tools they call. It sanitizes tool responses, enforces per-call scope limits, audits every interaction, and gives security teams visibility into what agents are actually doing.
+
+Ships with an open-source `mcp-scan` scanner as the go-to-market wedge — free tool, paid gateway.
+
+## The problem
+
+MCP standardized the substrate for agent tool calls (7,300+ servers and growing). OWASP named tool poisoning and prompt injection via tools in the Top 10 for LLMs. But there's no managed security layer between agents and their tools — just raw connections with no audit trail, no sanitization, and no scope control.
+
+## Why now
+
+Standards moments always create gateway opportunities: HTTP → Cloudflare, microservices → Istio. MCP is the new substrate. The gateway that owns the data plane can expand to observability, billing, governance, and marketplace from there.
+
+No funded pure-play competitor exists. 12-month window before WorkOS or Cloudflare moves in.
+
+## Current status
+
+Thesis written, pitch deck complete, pre-build. Applying to YC, AI Grant, a16z SPEEDRUN.
+
+## Stack
+
+TBD.

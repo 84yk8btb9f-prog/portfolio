@@ -1,25 +1,29 @@
 ---
-title: AI UGC Videos
+title: AI UGC Engine
 date: "2026-05-01"
-description: Exploring AI-generated UGC-style video ads as a distribution channel for my products.
-status: exploring
-tags: [ai, video, marketing, ads, ugc]
+description: Content production system that generates 550+ AI short-form videos per day for TikTok, Instagram Reels, and YouTube Shorts with a self-improving scoring loop.
+status: building
+tags: [ai, video, marketing, ads, ugc, typescript]
 ---
 
-## What I'm exploring
+## What it is
 
-AI-generated UGC (user-generated content) style video ads — synthetic avatars, talking-head creatives, and AI video tools that can produce scroll-stopping ad content at scale without a film crew.
+A fully automated content production engine that generates 550+ AI short-form videos per day for TikTok, Instagram Reels, and YouTube Shorts. Each video is scored by a WinnerScore formula that evaluates hooks, CTAs, and archetypes — and the system uses those scores to improve the next batch.
 
-The angle: most of my products (MarketMyApp, Helpmarq, Noctiq, PadelUp) need paid distribution eventually. AI UGC is the fastest path to test creatives cheaply before committing budget to production.
+The economics: $1/video. At scale, equivalent to $22K–$44K/day in Meta ad spend.
 
-## Why it's interesting
+## How it works
 
-Traditional ad creative is expensive and slow. AI video tools have crossed a quality threshold where synthetic creatives are indistinguishable from real UGC in the feed — and can be A/B tested at a fraction of the cost.
+Videos are generated via Higgsfield CLI, orchestrated in a TypeScript ESM monorepo. Apify handles research and intel ingestion (trending sounds, winning hooks, competitor analysis). Telegram is the control surface — approve, reject, and monitor runs from your phone. Claude scores output and feeds learnings back into the next generation cycle.
+
+## The self-improving loop
+
+Every video gets a WinnerScore based on engagement signals. High-performers get dissected: hook structure, CTA placement, visual archetype, pacing. Those patterns get injected back into the next generation prompt — so the engine gets better with every run.
 
 ## Current status
 
-Exploring. Researching tools, studying what's working in the space, figuring out where it fits in the broader marketing stack for my products.
+Active development (May 2026). Monorepo scaffold, type system, and core pipeline in progress.
 
----
+## Stack
 
-I'm always exploring new opportunities. If something looks like it has an unfair advantage — distribution, technology, timing — I pick it up and test it.
+TypeScript ESM monorepo, Higgsfield CLI, Apify, Telegram Bot API, Claude API.

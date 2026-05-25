@@ -1,0 +1,24 @@
+---
+title: X Swipefile Automation
+date: "2026-02-15"
+description: Automated weekly curation of viral X posts into structured briefs, delivered to Notion via GitHub Actions.
+status: live
+tags: [personal-tool, automation, x, notion, github-actions]
+---
+
+## What it is
+
+A weekly automation that finds viral X posts in my areas of interest, runs them through a structured analysis, and deposits formatted briefs into a Notion swipefile. Runs entirely on GitHub Actions — zero infrastructure to maintain.
+
+Now available as an on-demand Claude Code skill (`/x-swipefile`) so I can trigger a fresh curation run from any session.
+
+## How it works
+
+1. GitHub Actions triggers weekly
+2. WebSearch finds high-performing posts by niche and time window
+3. Claude analyzes hooks, formats, engagement patterns
+4. Structured briefs land in Notion for reference during content creation
+
+## Stack
+
+GitHub Actions, WebSearch, GitHub API, Notion API.
